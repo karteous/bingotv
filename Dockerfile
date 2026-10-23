@@ -23,6 +23,8 @@ COPY . .
 # 设置环境变量（构建时需要）
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# 触发 next.config.ts 中的 standalone 输出分支（Vercel 构建不设此变量，走默认 serverless）
+ENV DOCKER_OUTPUT=1
 
 # 构建应用
 RUN npm run build
