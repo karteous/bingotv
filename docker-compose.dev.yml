@@ -4,13 +4,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: kerkerker-app-dev
+    container_name: bingotv-app-dev
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MONGODB_URI=mongodb://mongodb:27017/kerkerker
+      - MONGODB_URI=mongodb://mongodb:27017/bingotv
       - NEXT_PUBLIC_DOUBAN_API_URL=${NEXT_PUBLIC_DOUBAN_API_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -23,16 +23,16 @@ services:
       mongodb:
         condition: service_healthy
     networks:
-      - kerkerker-network
+      - bingotv-network
     stdin_open: true
     tty: true
 
   # MongoDB 数据库服务（开发环境）
   mongodb:
     image: mongo:7
-    container_name: kerkerker-mongodb-dev
+    container_name: bingotv-mongodb-dev
     environment:
-      - MONGO_INITDB_DATABASE=kerkerker
+      - MONGO_INITDB_DATABASE=bingotv
     volumes:
       - mongodb-data-dev:/data/db
       - mongodb-config-dev:/data/configdb
@@ -42,10 +42,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - kerkerker-network
+      - bingotv-network
 
 networks:
-  kerkerker-network:
+  bingotv-network:
     driver: bridge
 
 volumes:

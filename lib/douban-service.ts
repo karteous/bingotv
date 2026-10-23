@@ -1,7 +1,7 @@
 /**
  * Douban API Service Client
  * 
- * 直接调用 kerkerker-douban-service 微服务 (前端直接调用，无代理层)
+ * 直接调用 bingoTV-douban-service 微服务 (前端直接调用，无代理层)
  * 服务地址通过环境变量 NEXT_PUBLIC_DOUBAN_API_URL 配置
  */
 

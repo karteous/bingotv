@@ -79,7 +79,7 @@ check_port_available() {
 # ==================== 主程序 ====================
 
 print_info "========================================"
-print_info "   Kerkerker 服务器部署脚本"
+print_info "   bingoTV 服务器部署脚本"
 print_info "========================================"
 printf "\n"
 
@@ -130,7 +130,7 @@ if [ -z "$VERSION" ]; then
   VERSION="latest"
 fi
 export IMAGE_VERSION="$VERSION"
-IMAGE_NAME="${DOCKER_USERNAME}/kerkerker:${VERSION}"
+IMAGE_NAME="${DOCKER_USERNAME}/bingotv:${VERSION}"
 print_success "✅ 镜像: $IMAGE_NAME"
 printf "\n"
 

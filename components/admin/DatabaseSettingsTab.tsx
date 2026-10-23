@@ -410,9 +410,9 @@ export function DatabaseSettingsTab({ onShowToast }: DatabaseSettingsTabProps) {
                 </div>
               </div>
               <div className="p-3 bg-[#141414] rounded-lg border border-[#333]">
-                <div className="font-mono text-green-400 text-xs mb-1"># 可选（默认: kerkerker）</div>
+                <div className="font-mono text-green-400 text-xs mb-1"># 可选（默认: bingotv）</div>
                 <div className="font-mono text-slate-300">
-                  MONGODB_DB_NAME=kerkerker
+                  MONGODB_DB_NAME=bingotv
                 </div>
               </div>
             </div>
@@ -429,7 +429,7 @@ export function DatabaseSettingsTab({ onShowToast }: DatabaseSettingsTabProps) {
                   <span className="text-white font-medium">Docker Compose 部署</span>
                 </div>
                 <code className="block text-xs text-slate-400 break-all">
-                  MONGODB_URI=mongodb://mongodb:27017/kerkerker
+                  MONGODB_URI=mongodb://mongodb:27017/bingotv
                 </code>
                 <p className="text-xs text-slate-500 mt-2">
                   使用 docker-compose 时，MongoDB 容器名为 mongodb
@@ -443,7 +443,7 @@ export function DatabaseSettingsTab({ onShowToast }: DatabaseSettingsTabProps) {
                   <span className="text-white font-medium">本地 MongoDB</span>
                 </div>
                 <code className="block text-xs text-slate-400 break-all">
-                  MONGODB_URI=mongodb://localhost:27017/kerkerker
+                  MONGODB_URI=mongodb://localhost:27017/bingotv
                 </code>
                 <p className="text-xs text-slate-500 mt-2">
                   需要先安装并启动本地 MongoDB 服务
@@ -457,7 +457,7 @@ export function DatabaseSettingsTab({ onShowToast }: DatabaseSettingsTabProps) {
                   <span className="text-white font-medium">MongoDB Atlas 云服务</span>
                 </div>
                 <code className="block text-xs text-slate-400 break-all">
-                  MONGODB_URI=mongodb+srv://&lt;用户名&gt;:&lt;密码&gt;@&lt;集群&gt;.mongodb.net/kerkerker
+                  MONGODB_URI=mongodb+srv://&lt;用户名&gt;:&lt;密码&gt;@&lt;集群&gt;.mongodb.net/bingotv
                 </code>
                 <p className="text-xs text-slate-500 mt-2">
                   从 Atlas 控制台获取连接字符串，支持免费 M0 套餐

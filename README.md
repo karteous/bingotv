@@ -67,7 +67,7 @@
 1. 点击上方按钮，Fork 项目到 Vercel
 2. 在 Vercel 控制台设置环境变量：
    ```
-   MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/kerkerker
+   MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/bingotv
    ADMIN_PASSWORD=your_password
    ```
 3. 部署完成！
@@ -83,7 +83,7 @@
 ```bash
 # 1. 克隆项目
 git clone https://github.com/karteous/bingotv.git
-cd kerkerker
+cd bingotv
 
 # 2. 创建配置文件
 cp .env.example .env
@@ -108,7 +108,7 @@ services:
       - "3000:3000" # 修改左侧端口号自定义访问端口
     environment:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MONGODB_URI=mongodb://mongodb:27017/kerkerker
+      - MONGODB_URI=mongodb://mongodb:27017/bingotv
     depends_on:
       mongodb:
         condition: service_healthy
@@ -140,19 +140,19 @@ docker-compose pull        # 更新镜像
 curl -fsSL https://raw.githubusercontent.com/karteous/bingotv/master/scripts/install.sh | bash
 
 # 使用 wget
-wget -qO- https://raw.githubusercontent.com/unilei/kerkerker/master/scripts/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/karteous/bingotv/master/scripts/install.sh | bash
 ```
 
 **部署后管理：**
 
 ```bash
-cd ~/kerkerker
-./kerkerker.sh start     # 启动
-./kerkerker.sh stop      # 停止
-./kerkerker.sh restart   # 重启
-./kerkerker.sh logs      # 日志
-./kerkerker.sh update    # 更新
-./kerkerker.sh backup    # 备份
+cd ~/bingotv
+./bingotv.sh start     # 启动
+./bingotv.sh stop      # 停止
+./bingotv.sh restart   # 重启
+./bingotv.sh logs      # 日志
+./bingotv.sh update    # 更新
+./bingotv.sh backup    # 备份
 ```
 
 ---
@@ -170,7 +170,7 @@ cd ~/kerkerker
 | 变量名                        | 说明           | 默认值                               |
 | ----------------------------- | -------------- | ------------------------------------ |
 | `ADMIN_PASSWORD`              | 后台管理密码   | `admin123`                           |
-| `MONGODB_DB_NAME`             | 数据库名称     | `kerkerker`                          |
+| `MONGODB_DB_NAME`             | 数据库名称     | `bingotv`                          |
 | `NEXT_PUBLIC_DANMU_API_URL`   | 弹幕 API 地址  | `https://danmuapi1-eight.vercel.app` |
 | `NEXT_PUBLIC_DANMU_API_TOKEN` | 弹幕 API Token | -                                    |
 
@@ -178,13 +178,13 @@ cd ~/kerkerker
 
 ```bash
 # Docker 内部（docker-compose 自动配置）
-MONGODB_URI=mongodb://mongodb:27017/kerkerker
+MONGODB_URI=mongodb://mongodb:27017/bingotv
 
 # 本地 MongoDB
-MONGODB_URI=mongodb://localhost:27017/kerkerker
+MONGODB_URI=mongodb://localhost:27017/bingotv
 
 # MongoDB Atlas（云端）
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kerkerker
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bingotv
 ```
 
 ---
@@ -232,7 +232,7 @@ open http://localhost:3000
 ## 📁 项目结构
 
 ```
-kerkerker/
+bingotv/
 ├── app/                    # Next.js App Router
 ├── components/             # React 组件
 │   └── player/             # 播放器组件

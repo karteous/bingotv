@@ -4,28 +4,28 @@
 services:
   # Next.js 应用（生产环境 - 使用远程镜像）
   app:
-    image: ${DOCKER_USERNAME:-your-dockerhub-username}/kerkerker:${IMAGE_VERSION:-latest}
-    container_name: kerkerker-app
+    image: ${DOCKER_USERNAME:-your-dockerhub-username}/bingotv:${IMAGE_VERSION:-latest}
+    container_name: bingotv-app
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MONGODB_URI=mongodb://mongodb:27017/kerkerker
+      - MONGODB_URI=mongodb://mongodb:27017/bingotv
       - NEXT_PUBLIC_DOUBAN_API_URL=${NEXT_PUBLIC_DOUBAN_API_URL}
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
-      - kerkerker-network
+      - bingotv-network
     restart: unless-stopped
 
   # MongoDB 数据库服务
   mongodb:
     image: mongo:7
-    container_name: kerkerker-mongodb
+    container_name: bingotv-mongodb
     environment:
-      - MONGO_INITDB_DATABASE=kerkerker
+      - MONGO_INITDB_DATABASE=bingotv
     volumes:
       - mongodb-data:/data/db
       - mongodb-config:/data/configdb
@@ -35,11 +35,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - kerkerker-network
+      - bingotv-network
     restart: unless-stopped
 
 networks:
-  kerkerker-network:
+  bingotv-network:
     driver: bridge
 
 volumes:

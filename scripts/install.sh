@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ============================================================
-# Kerkerker 一键部署脚本
+# bingoTV 一键部署脚本
 # ============================================================
 # 支持系统: Ubuntu, Debian, CentOS, RHEL, Alpine, macOS, Arch Linux
 # 使用方法:
@@ -79,7 +79,7 @@ SCRIPT_DATE="2025-12-26"
 DOCKER_IMAGE="karteous/bingotv"
 DEFAULT_VERSION="latest"
 DEFAULT_PORT="3000"
-INSTALL_DIR="${KERKERKER_INSTALL_DIR:-$HOME/kerkerker}"
+INSTALL_DIR="${BINGOTV_INSTALL_DIR:-$HOME/bingotv}"
 
 # ==================== 工具函数 ====================
 # POSIX 兼容的 printf 输出
@@ -91,7 +91,7 @@ print_banner() {
     print_color "${CYAN}"
     echo "╔═══════════════════════════════════════════════════════════╗"
     echo "║                                                           ║"
-    print_color "║   ${BOLD}🎬 Kerkerker 一键部署脚本${NC}${CYAN}                              ║\n"
+    print_color "║   ${BOLD}🎬 bingoTV 一键部署脚本${NC}${CYAN}                              ║\n"
     echo "║                                                           ║"
     echo "║   短剧/影视管理平台                                       ║"
     echo "║                                                           ║"
@@ -401,10 +401,10 @@ create_config_files() {
     # 创建 .env 文件
     cat > .env << EOF
 # ============================================================
-# Kerkerker 环境配置
+# bingoTV 环境配置
 # 生成时间: $(date '+%Y-%m-%d %H:%M:%S')
 # ============================================================
-# 修改配置后请执行: ./kerkerker.sh restart
+# 修改配置后请执行: ./bingotv.sh restart
 # ============================================================
 
 # ==================== Docker 镜像配置 ====================
@@ -420,7 +420,7 @@ NODE_ENV=production
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # ==================== 豆瓣 API 微服务配置 ====================
-# 独立的豆瓣 API 服务地址 (kerkerker-douban-service)
+# 独立的豆瓣 API 服务地址 (bingotv-douban-service)
 # Docker 环境: http://host.docker.internal:8081
 # 本地开发: http://localhost:8081
 # 生产环境: https://your-douban-api.example.com
@@ -431,34 +431,34 @@ EOF
     
     # 创建 docker-compose.yml
     cat > docker-compose.yml << 'EOF'
-# Kerkerker Docker Compose 配置
+# bingoTV Docker Compose 配置
 # 自动生成，请勿手动修改结构
 
 services:
   # Next.js 应用
   app:
     image: ${DOCKER_USERNAME:-karteous}/bingotv:${IMAGE_VERSION:-latest}
-    container_name: kerkerker-app
+    container_name: bingotv-app
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - MONGODB_URI=mongodb://mongodb:27017/kerkerker
+      - MONGODB_URI=mongodb://mongodb:27017/bingotv
       - NEXT_PUBLIC_DOUBAN_API_URL=${NEXT_PUBLIC_DOUBAN_API_URL}
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
-      - kerkerker-network
+      - bingotv-network
     restart: unless-stopped
 
   # MongoDB 数据库
   mongodb:
     image: mongo:7
-    container_name: kerkerker-mongodb
+    container_name: bingotv-mongodb
     environment:
-      - MONGO_INITDB_DATABASE=kerkerker
+      - MONGO_INITDB_DATABASE=bingotv
     volumes:
       - mongodb-data:/data/db
       - mongodb-config:/data/configdb
@@ -468,11 +468,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - kerkerker-network
+      - bingotv-network
     restart: unless-stopped
 
 networks:
-  kerkerker-network:
+  bingotv-network:
     driver: bridge
 
 volumes:
@@ -482,10 +482,10 @@ EOF
     print_success "创建 docker-compose.yml"
     
     # 创建管理脚本
-    cat > kerkerker.sh << 'SCRIPT'
+    cat > bingotv.sh << 'SCRIPT'
 #!/bin/sh
 
-# Kerkerker 管理脚本
+# bingoTV 管理脚本
 # 版本: 1.1.0
 
 cd "$(dirname "$0")"
@@ -551,8 +551,8 @@ case "$1" in
         ;;
     restore)
         if [ -z "$2" ]; then
-            echo "用法: ./kerkerker.sh restore <备份目录>"
-            echo "示例: ./kerkerker.sh restore ./backups/20251226_120000"
+            echo "用法: ./bingotv.sh restore <备份目录>"
+            echo "示例: ./bingotv.sh restore ./backups/20251226_120000"
             echo ""
             echo "可用备份:"
             ls -d ./backups/*/ 2>/dev/null || echo "   无备份"
@@ -575,7 +575,7 @@ case "$1" in
             echo "🛑 停止并删除容器..."
             $COMPOSE down -v
             echo "🗑️  删除配置文件..."
-            rm -f docker-compose.yml .env kerkerker.sh
+            rm -f docker-compose.yml .env bingotv.sh
             echo "✅ 卸载完成，数据卷已删除"
             echo "   注意: backups 目录已保留"
         else
@@ -590,9 +590,9 @@ case "$1" in
         echo "   NEXT_PUBLIC_DOUBAN_API_URL: ${NEXT_PUBLIC_DOUBAN_API_URL:-未设置}"
         ;;
     *)
-        echo "Kerkerker 管理脚本 v1.1.0"
+        echo "bingoTV 管理脚本 v1.1.0"
         echo ""
-        echo "用法: ./kerkerker.sh <命令>"
+        echo "用法: ./bingotv.sh <命令>"
         echo ""
         echo "命令:"
         echo "  start     启动服务"
@@ -608,8 +608,8 @@ case "$1" in
         ;;
 esac
 SCRIPT
-    chmod +x kerkerker.sh
-    print_success "创建管理脚本 kerkerker.sh"
+    chmod +x bingotv.sh
+    print_success "创建管理脚本 bingotv.sh"
 }
 
 # ==================== 部署服务 ====================
@@ -686,12 +686,12 @@ show_completion() {
     echo ""
     printf "%b📝 常用命令:%b\n" "${BOLD}" "${NC}"
     echo "   cd $INSTALL_DIR"
-    echo "   ./kerkerker.sh start    # 启动服务"
-    echo "   ./kerkerker.sh stop     # 停止服务"
-    echo "   ./kerkerker.sh logs     # 查看日志"
-    echo "   ./kerkerker.sh update   # 更新版本"
-    echo "   ./kerkerker.sh status   # 查看状态"
-    echo "   ./kerkerker.sh backup   # 备份数据"
+    echo "   ./bingotv.sh start    # 启动服务"
+    echo "   ./bingotv.sh stop     # 停止服务"
+    echo "   ./bingotv.sh logs     # 查看日志"
+    echo "   ./bingotv.sh update   # 更新版本"
+    echo "   ./bingotv.sh status   # 查看状态"
+    echo "   ./bingotv.sh backup   # 备份数据"
     echo ""
     printf "%b⚙️  修改配置:%b\n" "${BOLD}" "${NC}"
     printf "   配置文件位置: %b%s/.env%b\n" "${CYAN}" "$INSTALL_DIR" "${NC}"
@@ -701,7 +701,7 @@ show_completion() {
     echo "   - NEXT_PUBLIC_DOUBAN_API_URL  豆瓣 API 微服务地址"
     echo "   - APP_PORT                    应用端口"
     echo ""
-    printf "   修改后执行: %b./kerkerker.sh restart%b\n" "${CYAN}" "${NC}"
+    printf "   修改后执行: %b./bingotv.sh restart%b\n" "${CYAN}" "${NC}"
     echo ""
     
     # 显示服务状态
@@ -721,11 +721,11 @@ update_management_script() {
     print_step "更新管理脚本"
     cd "$INSTALL_DIR"
     
-    # 重新生成 kerkerker.sh（保留配置）
-    cat > kerkerker.sh << 'SCRIPT'
+    # 重新生成 bingotv.sh（保留配置）
+    cat > bingotv.sh << 'SCRIPT'
 #!/bin/sh
 
-# Kerkerker 管理脚本
+# bingoTV 管理脚本
 # 版本: 1.1.0
 
 cd "$(dirname "$0")"
@@ -791,8 +791,8 @@ case "$1" in
         ;;
     restore)
         if [ -z "$2" ]; then
-            echo "用法: ./kerkerker.sh restore <备份目录>"
-            echo "示例: ./kerkerker.sh restore ./backups/20251226_120000"
+            echo "用法: ./bingotv.sh restore <备份目录>"
+            echo "示例: ./bingotv.sh restore ./backups/20251226_120000"
             echo ""
             echo "可用备份:"
             ls -d ./backups/*/ 2>/dev/null || echo "   无备份"
@@ -815,7 +815,7 @@ case "$1" in
             echo "🛑 停止并删除容器..."
             $COMPOSE down -v
             echo "🗑️  删除配置文件..."
-            rm -f docker-compose.yml .env kerkerker.sh
+            rm -f docker-compose.yml .env bingotv.sh
             echo "✅ 卸载完成，数据卷已删除"
             echo "   注意: backups 目录已保留"
         else
@@ -830,9 +830,9 @@ case "$1" in
         echo "   NEXT_PUBLIC_DOUBAN_API_URL: ${NEXT_PUBLIC_DOUBAN_API_URL:-未设置}"
         ;;
     *)
-        echo "Kerkerker 管理脚本 v1.1.0"
+        echo "bingoTV 管理脚本 v1.1.0"
         echo ""
-        echo "用法: ./kerkerker.sh <命令>"
+        echo "用法: ./bingotv.sh <命令>"
         echo ""
         echo "命令:"
         echo "  start     启动服务"
@@ -848,8 +848,8 @@ case "$1" in
         ;;
 esac
 SCRIPT
-    chmod +x kerkerker.sh
-    print_success "更新管理脚本 kerkerker.sh"
+    chmod +x bingotv.sh
+    print_success "更新管理脚本 bingotv.sh"
 }
 
 # ==================== 主程序 ====================
