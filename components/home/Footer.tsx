@@ -46,14 +46,14 @@ export function Footer() {
         {/* 底部信息 */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <span>© 2026 壳儿</span>
+            <span>© 2026 bingoTV</span>
             <span className="text-gray-700">|</span>
             <span>仅供学习交流使用</span>
           </div>
 
           <div className="flex items-center gap-6">
             <a
-              href="https://github.com/unilei/kerkerker"
+              href="https://github.com/karteous/bingotv"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-gray-300 transition-colors flex items-center gap-1"

@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "壳儿 - 免费影视在线观看",
+  title: "bingoTV - 免费影视在线观看",
   description:
-    "壳儿 - 免费观看最新热门影视剧集，海量高清资源在线播放，支持多集连播",
+    "bingoTV - 免费观看最新热门影视剧集，海量高清资源在线播放，支持多集连播",
 };
 
 export default function RootLayout({

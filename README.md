@@ -1,4 +1,4 @@
-# 🎬 Kerkerker - 影视资源聚合平台
+# 🎬 bingoTV - 影视资源聚合平台
 
 <div align="center">
 
@@ -10,7 +10,7 @@
 
 **现代化影视资源聚合平台** - 支持 Dailymotion 视频源、豆瓣信息匹配、多种部署方式
 
-🌐 **在线演示**: [https://kerkerker.vercel.app](https://kerkerker.vercel.app)
+🌐 **在线演示**: [https://bingotv.vercel.app](https://bingotv.vercel.app)
 
 [功能特性](#-功能特性) • [部署方式](#-部署方式) • [环境变量](#-环境变量) • [本地开发](#-本地开发)
 
