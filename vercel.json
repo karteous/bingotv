@@ -3,9 +3,5 @@
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "regions": ["hkg1"],
-  "env": {
-    "DATABASE_PATH": "./data/app.db"
-  }
+  "framework": "nextjs"
 }
