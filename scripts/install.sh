@@ -5,9 +5,9 @@
 # ============================================================
 # 支持系统: Ubuntu, Debian, CentOS, RHEL, Alpine, macOS, Arch Linux
 # 使用方法:
-#   curl -fsSL https://raw.githubusercontent.com/unilei/kerkerker/master/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/karteous/bingotv/master/scripts/install.sh | sh
 #   或
-#   wget -qO- https://raw.githubusercontent.com/unilei/kerkerker/master/scripts/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/karteous/bingotv/master/scripts/install.sh | sh
 # ============================================================
 
 set -e
@@ -76,7 +76,7 @@ fi
 # ==================== 配置 ====================
 SCRIPT_VERSION="1.1.0"
 SCRIPT_DATE="2025-12-26"
-DOCKER_IMAGE="unilei/kerkerker"
+DOCKER_IMAGE="karteous/bingotv"
 DEFAULT_VERSION="latest"
 DEFAULT_PORT="3000"
 INSTALL_DIR="${KERKERKER_INSTALL_DIR:-$HOME/kerkerker}"
@@ -408,7 +408,7 @@ create_config_files() {
 # ============================================================
 
 # ==================== Docker 镜像配置 ====================
-DOCKER_USERNAME=unilei
+DOCKER_USERNAME=karteous
 IMAGE_VERSION=${IMAGE_VERSION}
 
 # ==================== 应用配置 ====================
@@ -437,7 +437,7 @@ EOF
 services:
   # Next.js 应用
   app:
-    image: ${DOCKER_USERNAME:-unilei}/kerkerker:${IMAGE_VERSION:-latest}
+    image: ${DOCKER_USERNAME:-karteous}/bingotv:${IMAGE_VERSION:-latest}
     container_name: kerkerker-app
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -712,7 +712,7 @@ show_completion() {
     
     # 显示教程链接
     printf "%b📖 更多教程:%b\n" "${BOLD}" "${NC}"
-    echo "   项目文档: https://github.com/unilei/kerkerker"
+    echo "   项目文档: https://github.com/karteous/bingotv"
     echo ""
 }
 
