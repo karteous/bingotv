@@ -121,7 +121,7 @@ function CalendarCard({
 
         {/* 缩略图正中间单图标播放按钮 */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="w-10 h-10 bg-black/60 group-hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/25 shadow-xl transition-all duration-300 group-hover:scale-110">
+          <div className="w-10 h-10 bg-black/60 group-hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/25 shadow-xl transition-all duration-300 transform scale-90 group-hover:scale-110">
             <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
           </div>
         </div>
