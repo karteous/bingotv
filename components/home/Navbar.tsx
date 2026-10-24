@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Menu, X, Home, Film, Tv, Clock, Video, Github, Calendar, History } from "lucide-react";
+import { Menu, X, Home, Film, Tv, Clock, Video, Github, Calendar, History, LogOut } from "lucide-react";
 import { HistoryPopup } from "./HistoryPopup";
 
 interface NavbarProps {
@@ -51,6 +51,16 @@ export function Navbar({ scrolled, onSearchOpen }: NavbarProps) {
   ];
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <>
@@ -174,6 +184,16 @@ export function Navbar({ scrolled, onSearchOpen }: NavbarProps) {
 
             {/* 历史记录弹出 */}
             <HistoryPopup />
+
+            {/* 退出登录按钮 */}
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-red-500"
+              title="退出登录"
+              aria-label="退出登录"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </nav>
@@ -251,7 +271,17 @@ export function Navbar({ scrolled, onSearchOpen }: NavbarProps) {
           </nav>
 
           {/* 侧边栏底部 */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-800">
+          <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-800 space-y-4">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-zinc-800/80 hover:bg-red-600/20 text-gray-300 hover:text-red-400 transition-colors text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>退出登录</span>
+            </button>
             <p className="text-xs text-gray-500 text-center">
               © 2026 bingoTV
             </p>
