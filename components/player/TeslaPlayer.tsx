@@ -12,7 +12,10 @@ export function TeslaPlayer({ videoUrl, title }: TeslaPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const teslaPlayerUrl = `https://tesla-player.com/?url=${encodeURIComponent(videoUrl)}`;
+  // 使用本地 dist 中的播放器内核，避免外部超链接因网络或跨域受阻
+  const teslaPlayerUrl = `/dist/index.html?url=${encodeURIComponent(
+    videoUrl
+  )}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
 
   const handleOpenExternal = () => {
     window.open(teslaPlayerUrl, "_blank");
@@ -49,11 +52,11 @@ export function TeslaPlayer({ videoUrl, title }: TeslaPlayerProps) {
       {isLoading && (
         <div className="absolute inset-0 z-10 bg-black flex flex-col items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-red-600" />
-          <p className="text-gray-400 text-sm">正在加载 Tesla 播放器...</p>
+          <p className="text-gray-400 text-sm">正在加载车机播放器 (dist)...</p>
         </div>
       )}
 
-      {/* Tesla Player 核心嵌入 */}
+      {/* 本地 Tesla / ArtPlayer 核心嵌入 */}
       <iframe
         key={reloadKey}
         src={teslaPlayerUrl}

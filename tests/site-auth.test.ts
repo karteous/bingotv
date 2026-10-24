@@ -69,6 +69,7 @@ test('whitelist paths are allowed without authentication', () => {
     'http://localhost:3000/api/health',
     'http://localhost:3000/_next/static/chunks/main.js',
     'http://localhost:3000/favicon.ico',
+    'http://localhost:3000/dist/index.html',
     'http://localhost:3000/images/banner.jpg',
     'http://localhost:3000/logo.svg',
   ];

@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
   // 1. 静态资源与系统探针放行
   if (
     pathname.startsWith('/_next') ||
+    pathname.startsWith('/dist') ||
     pathname.startsWith('/api/health') ||
     pathname === '/favicon.ico' ||
     /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|css|js|map)$/i.test(pathname)
