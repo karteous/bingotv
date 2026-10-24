@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <title>Tesla 播放器</title>
+  <title>Tesla 车载自研播放器</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,7 +17,7 @@
       overflow: hidden;
       background-color: #000;
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     #player-container {
       width: 100%;
@@ -45,9 +45,8 @@
       color: #e50914;
     }
   </style>
-  <!-- 离线本地引入 Hls.js 与 Artplayer.js -->
+  <!-- 离线本地引入 Hls.js，不使用任何 ArtPlayer -->
   <script src="/dist/hls.min.js"></script>
-  <script src="/dist/artplayer.js"></script>
 </head>
 <body>
   <div id="player-container"></div>
@@ -61,39 +60,6 @@
 
   <script type="module">
     import { Player } from '/dist/player-ui.js';
-
-    // 适配 m3u8 (HLS) 播放支持
-    if (window.Artplayer) {
-      window.Artplayer.option = window.Artplayer.option || {};
-      window.Artplayer.option.customType = window.Artplayer.option.customType || {};
-
-      const playM3u8 = function(video, url, art) {
-        if (window.Hls && window.Hls.isSupported()) {
-          if (art.hls) {
-            try { art.hls.destroy(); } catch (e) {}
-          }
-          const hls = new window.Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 90,
-          });
-          hls.loadSource(url);
-          hls.attachMedia(video);
-          art.hls = hls;
-          art.on('destroy', () => {
-            try { hls.destroy(); } catch (e) {}
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL')) {
-          video.src = url;
-        } else {
-          art.notice.show = '当前车机浏览器不支持播放此格式视频';
-        }
-      };
-
-      window.Artplayer.option.customType.m3u8 = playM3u8;
-      window.Artplayer.option.customType['application/x-mpegURL'] = playM3u8;
-      window.Artplayer.option.customType['application/vnd.apple.mpegurl'] = playM3u8;
-    }
 
     const params = new URLSearchParams(window.location.search);
     const videoUrl = params.get('url');
@@ -110,9 +76,10 @@
       try {
         const player = new Player({
           container: container,
+          url: videoUrl,
+          title: title || '特斯拉车机专属播放器',
           isLive: false,
         });
-        player.loadSource(videoUrl);
         window.__player = player;
 
         // 监听来自父窗口的消息（例如切换集数或换源）
@@ -122,7 +89,7 @@
           }
         });
       } catch (err) {
-        console.error('[TeslaPlayer Init Error]', err);
+        console.error('[Tesla Player Init Error]', err);
         emptyState.style.display = 'flex';
         document.getElementById('tip-text').textContent = '播放器初始化失败: ' + err.message;
       }

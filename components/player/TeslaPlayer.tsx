@@ -1,35 +1,101 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, RotateCw } from "lucide-react";
 
 interface TeslaPlayerProps {
   videoUrl: string;
   title?: string;
+  onEnded?: () => void;
 }
 
-export function TeslaPlayer({ videoUrl, title }: TeslaPlayerProps) {
+export function TeslaPlayer({ videoUrl, title, onEnded }: TeslaPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
 
-  // 使用本地 dist 中的播放器内核，避免外部超链接因网络或跨域受阻
-  const teslaPlayerUrl = `/dist/index.html?url=${encodeURIComponent(
+  // 本地独立车机播放页面
+  const standaloneUrl = `/dist/index.html?url=${encodeURIComponent(
     videoUrl
   )}${title ? `&title=${encodeURIComponent(title)}` : ""}`;
 
   const handleOpenExternal = () => {
-    window.open(teslaPlayerUrl, "_blank");
+    window.open(standaloneUrl, "_blank");
   };
 
   const handleReload = () => {
-    setIsLoading(true);
-    setReloadKey((prev) => prev + 1);
+    if (playerRef.current && videoUrl) {
+      setIsLoading(true);
+      playerRef.current.loadSource(videoUrl);
+      setTimeout(() => setIsLoading(false), 300);
+    }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initPlayer() {
+      if (!containerRef.current) return;
+      setIsLoading(true);
+
+      try {
+        // 动态引入 Hls.js（如果全局未定义）
+        if (typeof window !== "undefined" && !(window as unknown as { Hls?: unknown }).Hls) {
+          const HlsModule = (await import("hls.js")).default;
+          (window as unknown as { Hls: unknown }).Hls = HlsModule;
+        }
+
+        // 动态导入自研 Player 内核（非第三方 ArtPlayer）
+        const { Player } = await import("@/dist/player-ui.js");
+
+        if (!isMounted || !containerRef.current) return;
+
+        // 销毁旧实例
+        if (playerRef.current) {
+          playerRef.current.destroy();
+          playerRef.current = null;
+        }
+
+        const player = new Player({
+          container: containerRef.current,
+          url: videoUrl,
+          title: title || "自研车机播放器",
+          isLive: false,
+        });
+
+        // 监听结束事件
+        if (player.video && onEnded) {
+          player.video.addEventListener("ended", onEnded);
+        }
+
+        playerRef.current = player;
+      } catch (err) {
+        console.error("[TeslaPlayer Mount Error]", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    initPlayer();
+
+    return () => {
+      isMounted = false;
+      if (playerRef.current) {
+        try {
+          playerRef.current.destroy();
+        } catch {}
+        playerRef.current = null;
+      }
+    };
+  }, [videoUrl, title, onEnded]);
+
   return (
-    <div className="relative w-full h-full bg-black flex flex-col">
-      {/* 顶部特斯拉快捷条 */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+    <div className="relative w-full h-full bg-black flex flex-col overflow-hidden">
+      {/* 顶部快捷操作栏 */}
+      <div className="absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
         <button
           onClick={handleReload}
           className="p-2 bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white rounded-lg backdrop-blur-md transition-colors border border-white/10"
@@ -50,22 +116,14 @@ export function TeslaPlayer({ videoUrl, title }: TeslaPlayerProps) {
 
       {/* 加载指示 */}
       {isLoading && (
-        <div className="absolute inset-0 z-10 bg-black flex flex-col items-center justify-center gap-3">
+        <div className="absolute inset-0 z-20 bg-black flex flex-col items-center justify-center gap-3 pointer-events-none">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-red-600" />
-          <p className="text-gray-400 text-sm">正在加载车机播放器 (dist)...</p>
+          <p className="text-gray-400 text-sm">正在加载自研车机播放器...</p>
         </div>
       )}
 
-      {/* 本地 Tesla / ArtPlayer 核心嵌入 */}
-      <iframe
-        key={reloadKey}
-        src={teslaPlayerUrl}
-        className="w-full h-full border-0 grow"
-        allowFullScreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        title={title ? `Tesla Player - ${title}` : "Tesla Player"}
-        onLoad={() => setIsLoading(false)}
-      />
+      {/* 自研播放器挂载容器 */}
+      <div ref={containerRef} className="w-full h-full grow" />
     </div>
   );
 }

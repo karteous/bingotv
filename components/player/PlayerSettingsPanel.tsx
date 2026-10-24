@@ -331,7 +331,7 @@ export function PlayerSettingsPanel({
                               : "text-gray-500"
                           }`}
                         >
-                          专为特斯拉车机浏览器优化
+                          自研车机播放器（大触控与硬解优化）
                         </div>
                       </div>
                     </div>
