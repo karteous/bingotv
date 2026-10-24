@@ -350,6 +350,12 @@ export default function MovieDetailPage() {
     );
   };
 
+  // 智能选取横屏大背景图：优先使用剧照，没有则使用封面
+  const heroBackdrop =
+    movieDetail?.photos && movieDetail.photos.length > 0
+      ? movieDetail.photos[0].image
+      : cover;
+
   // 快速播放（使用第一个源）
   const handleQuickPlay = () => {
     if (availableSources.length > 0) {
@@ -359,16 +365,20 @@ export default function MovieDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-red-500/30">
-      {/* 沉浸式背景 - 调整透明度以保持整体暗黑风格一致性 */}
+      {/* 沉浸式大画幅横屏背景 */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[#0a0a0a] z-0" />
-        <img
-          src={getImageUrl(cover)}
-          alt={title}
-          className="absolute inset-0 w-full h-full object-cover opacity-20 blur-3xl scale-110"
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent z-10" />
-        <div className="absolute inset-0 bg-linear-to-r from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent z-10" />
+        {heroBackdrop && (
+          <img
+            src={getImageUrl(heroBackdrop)}
+            alt={title}
+            className="absolute top-0 right-0 w-full h-[70vh] lg:h-[85vh] object-cover object-top opacity-35 lg:opacity-40 transition-opacity duration-1000 scale-105 filter brightness-90 contrast-105"
+          />
+        )}
+        {/* 多重电影感渐变蒙层：底部向上渐变融入黑底，左侧向右渐变保证文字高对比可读 */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/85 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent z-10" />
+        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#0a0a0a]/90 to-transparent z-10" />
       </div>
 
       {/* 导航栏 */}
@@ -392,212 +402,93 @@ export default function MovieDetailPage() {
         </div>
       </nav>
 
-      {/* 加载中骨架屏 */}
+      {/* 加载中骨架屏 - 响应式双栏：文字在左，选集在右 */}
       {isLoadingDetail && (
-        <main className="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-          {/* 窄屏/小宽度下的顶部紧凑骨架 */}
-          <div className="flex md:hidden gap-4 sm:gap-6 items-start w-full mb-6">
-            <div className="w-28 sm:w-36 shrink-0 aspect-2/3 rounded-xl bg-white/10 animate-pulse" />
-            <div className="flex-1 space-y-3">
-              <div className="h-7 sm:h-9 bg-white/10 rounded-lg w-3/4 animate-pulse" />
+        <main className="relative z-20 max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-5 md:py-8 lg:py-10">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 xl:gap-14 items-start w-full">
+            {/* 左侧文字骨架 */}
+            <div className="w-full lg:w-5/12 xl:w-5/12 space-y-5 animate-pulse">
+              <div className="h-10 lg:h-12 bg-white/10 rounded-xl w-3/4" />
+              <div className="flex flex-wrap gap-2">
+                <div className="h-7 w-16 bg-yellow-500/10 rounded-lg" />
+                <div className="h-7 w-14 bg-white/10 rounded-lg" />
+                <div className="h-7 w-20 bg-white/10 rounded-lg" />
+                <div className="h-7 w-16 bg-white/10 rounded-lg" />
+              </div>
               <div className="flex gap-2">
-                <div className="h-6 w-16 bg-yellow-500/10 rounded animate-pulse" />
-                <div className="h-6 w-14 bg-white/10 rounded animate-pulse" />
+                <div className="h-6 w-14 bg-red-500/10 rounded-full" />
+                <div className="h-6 w-14 bg-red-500/10 rounded-full" />
+                <div className="h-6 w-14 bg-red-500/10 rounded-full" />
               </div>
-              <div className="h-5 w-24 bg-red-500/10 rounded-full animate-pulse" />
-              <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-6 lg:gap-10 xl:gap-12 items-start">
-            {/* 桌面端/横屏左侧海报骨架 */}
-            <div className="hidden md:block md:w-52 lg:w-72 xl:w-80 shrink-0">
-              <div className="aspect-2/3 rounded-2xl bg-white/10 animate-pulse shadow-2xl shadow-black/50" />
-            </div>
-
-            {/* 信息骨架 */}
-            <div className="flex-1 w-full space-y-6">
-              {/* 仅在桌面端显示的大标题骨架 */}
-              <div className="hidden md:block space-y-3">
-                <div className="h-10 md:h-14 bg-white/10 rounded-xl w-3/4 animate-pulse" />
+              <div className="bg-white/5 rounded-xl p-4 space-y-2">
+                <div className="h-4 bg-white/10 rounded w-1/2" />
+                <div className="h-4 bg-white/10 rounded w-3/4" />
               </div>
-              {/* 标题 */}
-              <div className="space-y-3">
-                <div className="h-10 md:h-14 bg-white/10 rounded-xl w-3/4 animate-pulse" />
-              </div>
-
-              {/* 评分和标签行 */}
-              <div className="flex flex-wrap gap-3">
-                <div className="h-9 w-20 bg-yellow-500/10 rounded-lg animate-pulse" />
-                <div className="h-9 w-16 bg-white/10 rounded-lg animate-pulse delay-75" />
-                <div className="h-9 w-24 bg-white/10 rounded-lg animate-pulse delay-100" />
-                <div className="h-9 w-20 bg-white/10 rounded-lg animate-pulse delay-150" />
-              </div>
-
-              {/* 类型标签 */}
-              <div className="flex gap-2">
-                <div className="h-7 w-16 bg-red-500/10 rounded-full animate-pulse" />
-                <div className="h-7 w-14 bg-red-500/10 rounded-full animate-pulse delay-75" />
-                <div className="h-7 w-18 bg-red-500/10 rounded-full animate-pulse delay-100" />
-              </div>
-
-              {/* 导演/演员 */}
-              <div className="space-y-3">
-                <div className="flex gap-2 items-center">
-                  <div className="h-4 w-12 bg-white/5 rounded animate-pulse" />
-                  <div className="h-4 w-40 bg-white/10 rounded animate-pulse delay-75" />
-                </div>
-                <div className="flex gap-2 items-center">
-                  <div className="h-4 w-12 bg-white/5 rounded animate-pulse" />
-                  <div className="h-4 w-64 bg-white/10 rounded animate-pulse delay-100" />
-                </div>
-              </div>
-
-              {/* 短评骨架 */}
-              <div className="bg-white/5 rounded-xl p-4 space-y-2 animate-pulse">
+              <div className="bg-white/5 rounded-xl p-4 space-y-2">
                 <div className="h-4 bg-white/10 rounded w-full" />
                 <div className="h-4 bg-white/10 rounded w-5/6" />
-                <div className="h-3 bg-white/5 rounded w-24 mt-3" />
               </div>
+            </div>
 
-              {/* 播放源区域骨架 */}
-              <div className="bg-white/5 rounded-3xl p-6 mt-8 space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="h-6 w-20 bg-white/10 rounded animate-pulse" />
-                  <div className="h-4 w-28 bg-white/5 rounded animate-pulse" />
-                </div>
-                <div className="h-12 w-36 bg-red-500/20 rounded-full mx-auto animate-pulse" />
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-16 bg-white/5 rounded-xl animate-pulse"
-                      style={{ animationDelay: `${i * 50}ms` }}
-                    />
-                  ))}
-                </div>
+            {/* 右侧播放源骨架 */}
+            <div className="flex-1 w-full bg-white/5 rounded-2xl md:rounded-3xl p-6 space-y-4 animate-pulse">
+              <div className="flex justify-between items-center">
+                <div className="h-6 w-20 bg-white/10 rounded" />
+                <div className="h-5 w-28 bg-white/5 rounded-full" />
+              </div>
+              <div className="h-10 w-32 bg-red-500/20 rounded-xl" />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-14 bg-white/5 rounded-xl"
+                  />
+                ))}
               </div>
             </div>
           </div>
         </main>
       )}
 
-      {/* 主内容 */}
+      {/* 主内容 - 去掉独立小缩略图，文字在左，选集（播放源）在右 */}
       {!isLoadingDetail && (
-        <main className="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-          {/* 窄屏/小宽度模式（md以下）：左侧紧凑海报 + 右侧核心信息 */}
-          <div className="flex md:hidden gap-4 sm:gap-6 items-start w-full mb-6 animate-fade-in">
-            <div className="w-28 sm:w-36 shrink-0 aspect-2/3 rounded-xl overflow-hidden shadow-xl border border-white/10">
-              <img
-                src={getImageUrl(cover)}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight tracking-tight drop-shadow-md">
-                {title}
-              </h1>
-              {/* 评分和标签 */}
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm mb-3">
-                {rate && (
-                  <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20 font-bold">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{rate}</span>
-                  </div>
-                )}
-                {movieDetail?.release_year && (
-                  <div className="px-2 py-0.5 bg-white/10 rounded text-gray-200 border border-white/5">
-                    {movieDetail.release_year}
-                  </div>
-                )}
-                {movieDetail?.duration && (
-                  <div className="px-2 py-0.5 bg-white/10 rounded text-gray-200 border border-white/5">
-                    {movieDetail.duration}
-                  </div>
-                )}
-                {movieDetail?.region && (
-                  <div className="px-2 py-0.5 bg-white/10 rounded text-gray-200 border border-white/5">
-                    {movieDetail.region}
-                  </div>
-                )}
-              </div>
-              {/* 类型标签 */}
-              {movieDetail?.types && movieDetail.types.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2.5">
-                  {movieDetail.types.map((type, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-0.5 bg-red-500/20 text-red-300 rounded-full text-xs border border-red-500/20"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {/* 导演与主演 */}
-              {movieDetail?.directors && movieDetail.directors.length > 0 && (
-                <div className="text-xs text-gray-400 truncate">
-                  导演: <span className="text-gray-200">{movieDetail.directors.join(" / ")}</span>
-                </div>
-              )}
-              {movieDetail?.actors && movieDetail.actors.length > 0 && (
-                <div className="text-xs text-gray-400 truncate mt-1">
-                  主演: <span className="text-gray-200">{movieDetail.actors.slice(0, 4).join(" / ")}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 桌面端/横屏车机主容器（md及以上开启双栏） */}
-          <div className="flex flex-col md:flex-row gap-6 lg:gap-10 xl:gap-12 items-start">
-            {/* 左侧海报 - 仅md及以上显示 */}
-            <div className="hidden md:block md:w-52 lg:w-72 xl:w-80 shrink-0 animate-fade-in">
-              <div className="aspect-2/3 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 relative group">
-                <img
-                  src={getImageUrl(cover)}
-                  alt={title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              </div>
-            </div>
-
-            {/* 右侧信息 & 播放源 */}
-            <div className="flex-1 w-full animate-fade-in delay-100">
-              {/* 桌面端标题和元数据 */}
-              <div className="hidden md:block mb-8 lg:mb-10">
-                <h1 className="text-3xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 lg:mb-6 leading-tight tracking-tight drop-shadow-xl">
+        <main className="relative z-20 max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-5 md:py-8 lg:py-10">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 xl:gap-14 items-start w-full">
+            
+            {/* 左侧：文字详情区 */}
+            <div className="w-full lg:w-5/12 xl:w-5/12 shrink-0 animate-fade-in space-y-5 sm:space-y-6">
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 lg:mb-4 leading-tight tracking-tight drop-shadow-xl">
                   {title}
                 </h1>
 
-                {/* 评分和基本标签 */}
-                <div className="flex flex-wrap items-center gap-3 text-sm md:text-base mb-6">
+                {/* 评分和元数据小标签 */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs sm:text-sm mb-4">
                   {rate && (
-                    <div className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-lg border border-yellow-500/20 backdrop-blur-sm shadow-sm">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="font-bold">{rate}</span>
+                    <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg border border-yellow-500/20 font-bold backdrop-blur-sm">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span>{rate}</span>
                     </div>
                   )}
                   {movieDetail?.release_year && (
-                    <div className="px-3 py-1.5 bg-white/10 rounded-lg text-gray-200 backdrop-blur-sm border border-white/5">
+                    <div className="px-2.5 py-1 bg-white/10 rounded-lg text-gray-200 border border-white/5 backdrop-blur-sm">
                       {movieDetail.release_year}
                     </div>
                   )}
                   {movieDetail?.duration && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-lg text-gray-200 backdrop-blur-sm border border-white/5">
-                      <Clock className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-lg text-gray-200 border border-white/5 backdrop-blur-sm">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
                       {movieDetail.duration}
                     </div>
                   )}
                   {movieDetail?.region && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-lg text-gray-200 backdrop-blur-sm border border-white/5">
-                      <MapPin className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-lg text-gray-200 border border-white/5 backdrop-blur-sm">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
                       {movieDetail.region}
                     </div>
                   )}
                   {movieDetail?.episodes_count && (
-                    <div className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg border border-blue-500/20">
+                    <div className="px-2.5 py-1 bg-blue-500/20 text-blue-300 rounded-lg border border-blue-500/20 backdrop-blur-sm">
                       {movieDetail.episodes_count}
                     </div>
                   )}
@@ -605,121 +496,97 @@ export default function MovieDetailPage() {
 
                 {/* 类型标签 */}
                 {movieDetail?.types && movieDetail.types.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {movieDetail.types.map((type, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm border border-red-500/20"
+                        className="px-2.5 py-0.5 sm:py-1 bg-red-500/20 text-red-300 rounded-full text-xs font-medium border border-red-500/20"
                       >
                         {type}
                       </span>
                     ))}
                   </div>
                 )}
+              </div>
 
-                {/* 导演和演员 */}
-                <div className="space-y-3 mb-6">
-                  {movieDetail?.directors &&
-                    movieDetail.directors.length > 0 && (
-                      <div className="flex items-start gap-2 text-sm">
-                        <span className="text-gray-500 shrink-0 flex items-center gap-1">
-                          <Clapperboard className="w-4 h-4" />
-                          导演:
-                        </span>
-                        <span className="text-gray-300">
-                          {movieDetail.directors.join(" / ")}
-                        </span>
-                      </div>
-                    )}
-                  {movieDetail?.actors && movieDetail.actors.length > 0 && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-gray-500 shrink-0 flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        主演:
-                      </span>
-                      <span className="text-gray-300 line-clamp-2">
-                        {movieDetail.actors.slice(0, 5).join(" / ")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 短评 */}
-                {movieDetail?.short_comment && (
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                    <p className="text-gray-300 text-sm italic leading-relaxed">
-                      &ldquo;{movieDetail.short_comment.content}&rdquo;
-                    </p>
-                    <p className="text-gray-500 text-xs mt-2">
-                      ——{" "}
-                      {typeof movieDetail.short_comment.author === "string"
-                        ? movieDetail.short_comment.author
-                        : movieDetail.short_comment.author?.name}
-                    </p>
+              {/* 导演与演员 */}
+              <div className="space-y-2 text-xs sm:text-sm text-gray-300 bg-white/[0.04] p-3.5 sm:p-4 rounded-xl border border-white/5">
+                {movieDetail?.directors && movieDetail.directors.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-400 shrink-0 flex items-center gap-1 font-medium">
+                      <Clapperboard className="w-3.5 h-3.5 text-gray-400" />
+                      导演:
+                    </span>
+                    <span className="text-gray-200">
+                      {movieDetail.directors.join(" / ")}
+                    </span>
                   </div>
                 )}
-
-                {/* 剧照 */}
-                {movieDetail?.photos && movieDetail.photos.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <ImageIcon className="w-5 h-5 text-blue-400" />
-                      剧照
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {movieDetail.photos.slice(0, 6).map((photo) => (
-                        <a
-                          key={photo.id}
-                          href={photo.image}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="aspect-video rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity"
-                        >
-                          <img
-                            src={getImageUrl(photo.thumb || photo.image)}
-                            alt="剧照"
-                            className="w-full h-full object-cover"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 热门短评 */}
-                {movieDetail?.comments && movieDetail.comments.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5 text-green-400" />
-                      热门短评
-                    </h3>
-                    <div className="space-y-3">
-                      {movieDetail.comments.slice(0, 3).map((comment) => (
-                        <div
-                          key={comment.id}
-                          className="bg-white/5 rounded-lg p-3 border border-white/5"
-                        >
-                          <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">
-                            {comment.content}
-                          </p>
-                          <p className="text-gray-500 text-xs mt-2">
-                            —— {comment.author.name}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                {movieDetail?.actors && movieDetail.actors.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-400 shrink-0 flex items-center gap-1 font-medium">
+                      <Users className="w-3.5 h-3.5 text-gray-400" />
+                      主演:
+                    </span>
+                    <span className="text-gray-200 line-clamp-2">
+                      {movieDetail.actors.slice(0, 6).join(" / ")}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* 播放源区域 */}
-              <div className="bg-[#121212]/40 backdrop-blur-2xl rounded-2xl md:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 shadow-2xl shadow-black/20">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                    <span className="w-1 h-6 bg-red-600 rounded-full" />
+              {/* 短评卡片 */}
+              {movieDetail?.short_comment && (
+                <div className="bg-white/[0.04] rounded-xl p-3.5 sm:p-4 border border-white/5 shadow-lg">
+                  <p className="text-gray-300 text-xs sm:text-sm italic leading-relaxed">
+                    &ldquo;{movieDetail.short_comment.content}&rdquo;
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2 text-right">
+                    ——{" "}
+                    {typeof movieDetail.short_comment.author === "string"
+                      ? movieDetail.short_comment.author
+                      : movieDetail.short_comment.author?.name}
+                  </p>
+                </div>
+              )}
+
+              {/* 剧照预览 */}
+              {movieDetail?.photos && movieDetail.photos.length > 0 && (
+                <div className="pt-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-gray-400 mb-2.5 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
+                    剧照
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {movieDetail.photos.slice(0, 3).map((photo) => (
+                      <a
+                        key={photo.id}
+                        href={photo.image}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="aspect-video rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity border border-white/5"
+                      >
+                        <img
+                          src={getImageUrl(photo.thumb || photo.image)}
+                          alt="剧照"
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 右侧：选集与播放源区域 */}
+            <div className="flex-1 w-full animate-fade-in delay-100">
+              <div className="bg-[#121212]/50 backdrop-blur-2xl rounded-2xl md:rounded-3xl border border-white/10 p-4 sm:p-6 md:p-7 shadow-2xl shadow-black/40">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
+                    <span className="w-1 h-5 bg-red-600 rounded-full" />
                     播放源
                     {searchStatus === "searching" && totalSourceCount > 0 && (
-                      <span className="text-sm font-normal text-gray-400 ml-2 flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-normal text-gray-400 ml-2 flex items-center gap-1.5">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         正在搜索... {searchedSourceCount}/{totalSourceCount}
                       </span>
@@ -728,7 +595,7 @@ export default function MovieDetailPage() {
 
                   {/* 统计信息 */}
                   {availableSources.length > 0 && (
-                    <div className="text-sm text-gray-400 bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                    <div className="text-xs sm:text-sm text-gray-400 bg-black/30 px-2.5 py-0.5 rounded-full border border-white/5">
                       已找到{" "}
                       <span className="text-white font-bold">
                         {availableSources.length}
@@ -765,22 +632,22 @@ export default function MovieDetailPage() {
                       </button>
                     </div>
 
-                    {/* 列表 */}
+                    {/* 播放源卡片列表 */}
                     <div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-2.5 sm:gap-3">
                         {availableSources.map((source, index) => (
                           <button
                             key={`${source.source_key}-${source.vod_id}`}
                             onClick={() => handlePlay(source)}
-                            className={`relative p-4 rounded-xl text-left transition-all duration-300 group border ${
+                            className={`relative p-3.5 rounded-xl text-left transition-all duration-300 group border ${
                               index === 0
                                 ? "bg-red-500/10 border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50"
                                 : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10"
                             }`}
                           >
-                            <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-start justify-between mb-1.5">
                               <span
-                                className={`text-xs font-medium px-2 py-0.5 rounded-md ${
+                                className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
                                   index === 0
                                     ? "bg-red-500/20 text-red-300"
                                     : "bg-white/10 text-gray-400 group-hover:text-white"
@@ -794,7 +661,7 @@ export default function MovieDetailPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="font-medium text-white text-sm line-clamp-1 group-hover:text-red-400 transition-colors">
+                            <div className="font-medium text-white text-xs sm:text-sm line-clamp-1 group-hover:text-red-400 transition-colors">
                               {source.vod_name}
                             </div>
                           </button>
@@ -803,8 +670,7 @@ export default function MovieDetailPage() {
                     </div>
                   </div>
                 )}
-
-                {/* 未找到 */}
+{/* 未找到 */}
                 {searchStatus === "not_found" && (
                   <div className="flex flex-col items-center justify-center py-12 gap-4">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center">
