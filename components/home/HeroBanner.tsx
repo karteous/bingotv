@@ -176,13 +176,13 @@ export function HeroBanner({
                     )}
 
                     {/* 操作按钮 */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <button
                         onClick={() => onMovieClick(movie)}
-                        className="group flex items-center gap-2.5 sm:gap-3 bg-white text-black px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-xl font-bold hover:bg-neutral-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-white/5"
+                        className="group inline-flex items-center gap-2 sm:gap-2.5 bg-white text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-semibold sm:font-bold text-sm sm:text-base hover:bg-neutral-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md shadow-black/20"
                       >
-                        <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-black group-hover:fill-black transition-colors" />
-                        <span className="text-base sm:text-lg">立即播放</span>
+                        <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-black group-hover:fill-black transition-colors" />
+                        <span>立即播放</span>
                       </button>
                     </div>
                   </div>

@@ -751,17 +751,19 @@ export default function MovieDetailPage() {
                 {(searchStatus === "success" ||
                   (searchStatus === "searching" &&
                     availableSources.length > 0)) && (
-                  <div className="space-y-8">
+                  <div className="space-y-4 sm:space-y-5">
                     {/* 快速播放 */}
-                    <button
-                      onClick={handleQuickPlay}
-                      className="w-full md:w-auto flex items-center justify-center gap-3 bg-red-600 hover:bg-red-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-red-900/20 group"
-                    >
-                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-4 h-4 fill-red-600 text-red-600 ml-0.5" />
-                      </div>
-                      立即播放
-                    </button>
+                    <div>
+                      <button
+                        onClick={handleQuickPlay}
+                        className="inline-flex items-center justify-center gap-2.5 bg-red-600 hover:bg-red-500 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold sm:font-bold text-sm sm:text-base transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-red-900/25 group"
+                      >
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-red-600 text-red-600 ml-0.5" />
+                        </div>
+                        <span>立即播放</span>
+                      </button>
+                    </div>
 
                     {/* 列表 */}
                     <div>
