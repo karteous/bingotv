@@ -43,14 +43,22 @@ test('unauthenticated user visiting /movie/123 is redirected to /login with redi
   assert.equal(location.searchParams.get('redirect'), '/movie/123?source=home');
 });
 
-test('unauthenticated request to protected API returns 401 JSON', async () => {
-  const req = new NextRequest('http://localhost:3000/api/drama/list');
+test('unauthenticated request to sensitive admin API returns 401 JSON', async () => {
+  const req = new NextRequest('http://localhost:3000/api/database/test');
   const res = proxy(req);
 
   assert.equal(res.status, 401);
   const body = await res.json();
   assert.equal(body.code, 401);
   assert.equal(body.error, 'Unauthorized');
+});
+
+test('internal/business APIs like /api/drama/list are allowed so server-side search is not blocked', () => {
+  const req = new NextRequest('http://localhost:3000/api/drama/list');
+  const res = proxy(req);
+
+  assert.equal(res.headers.get('location'), null);
+  assert.notEqual(res.status, 401);
 });
 
 test('whitelist paths are allowed without authentication', () => {
@@ -68,7 +76,6 @@ test('whitelist paths are allowed without authentication', () => {
   for (const url of whitelistUrls) {
     const req = new NextRequest(url);
     const res = proxy(req);
-    // NextResponse.next() 状态码为 200，且不含 location 重定向头
     assert.equal(res.headers.get('location'), null, `Url ${url} should not redirect`);
     assert.notEqual(res.status, 401, `Url ${url} should not be 401`);
   }
@@ -85,7 +92,7 @@ test('authenticated user is allowed to access protected page and API', () => {
   const pageRes = proxy(pageReq);
   assert.equal(pageRes.headers.get('location'), null);
 
-  const apiReq = new NextRequest('http://localhost:3000/api/drama/list', {
+  const apiReq = new NextRequest('http://localhost:3000/api/database/status', {
     headers: {
       cookie: `${SESSION_COOKIE_NAME}=${validToken}`,
     },

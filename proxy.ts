@@ -41,21 +41,30 @@ export function proxy(request: NextRequest) {
 
   // 4. 未登录拦截：必须登录才能进入网站
   if (!isAuthenticated) {
-    // API 请求返回 401 JSON
-    if (pathname.startsWith('/api')) {
+    // 如果是页面请求，重定向到 /login
+    if (!pathname.startsWith('/api')) {
+      const loginUrl = new URL('/login', request.url);
+      const redirectPath = `${pathname}${search}`;
+      if (redirectPath !== '/' && !redirectPath.startsWith('/login')) {
+        loginUrl.searchParams.set('redirect', redirectPath);
+      }
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // 如果是 API 请求：
+    // 后台管理敏感操作和管理页面相关接口必须鉴权拦截，防止未经授权的修改；
+    // 业务读取接口（如视频检索、图片/视频流代理）避免因服务端内部自调用（无 Cookie）或跨域标签而导致全网资源匹配失效。
+    const isProtectedAdminApi =
+      pathname.startsWith('/api/database') ||
+      pathname.startsWith('/api/decrypt') ||
+      pathname.startsWith('/api/admin');
+
+    if (isProtectedAdminApi) {
       return NextResponse.json(
         { code: 401, error: 'Unauthorized', message: '请先登录' },
         { status: 401 }
       );
     }
-
-    // 页面请求重定向到 /login
-    const loginUrl = new URL('/login', request.url);
-    const redirectPath = `${pathname}${search}`;
-    if (redirectPath !== '/' && !redirectPath.startsWith('/login')) {
-      loginUrl.searchParams.set('redirect', redirectPath);
-    }
-    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

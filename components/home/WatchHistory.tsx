@@ -35,7 +35,7 @@ export function WatchHistory() {
   };
 
   return (
-    <div className="px-4 md:px-12">
+    <div className="px-4 md:px-8 lg:px-12">
       {/* 标题和查看全部 */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
@@ -53,12 +53,12 @@ export function WatchHistory() {
 
       {/* 横向滚动列表 */}
       <div className="relative group">
-        <div className="flex overflow-x-auto space-x-3 md:space-x-4 pb-4 scrollbar-hide scroll-smooth">
+        <div className="flex overflow-x-auto space-x-2.5 sm:space-x-3 md:space-x-4 pb-4 scrollbar-hide scroll-smooth">
           {displayHistory.map((item) => (
             <div
               key={item.id}
               onClick={() => handleClick(item)}
-              className="shrink-0 w-40 sm:w-48 md:w-56 cursor-pointer group/card"
+              className="shrink-0 w-28 sm:w-32 md:w-36 lg:w-44 xl:w-48 cursor-pointer group/card"
             >
               <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-all duration-300 group-hover/card:shadow-xl group-hover/card:shadow-red-500/20 group-hover/card:scale-105">
                 {/* 封面图 */}

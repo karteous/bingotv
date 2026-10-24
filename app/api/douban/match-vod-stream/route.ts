@@ -40,13 +40,17 @@ function getMatchConfidence(vodName: string, title: string): 'high' | 'medium' |
 async function searchSingleSource(
   origin: string,
   source: VodSource,
-  title: string
+  title: string,
+  cookieHeader?: string | null
 ): Promise<MatchResult | null> {
   try {
-    // 使用 POST 请求，传递完整的 source 对象
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (cookieHeader) {
+      headers.cookie = cookieHeader;
+    }
     const response = await fetch(`${origin}/api/drama/list`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         source: source,
         page: 1,
@@ -119,6 +123,7 @@ export async function GET(request: NextRequest) {
   }
   
   const origin = request.nextUrl.origin;
+  const cookieHeader = request.headers.get('cookie');
   
   // 创建 SSE 流
   const encoder = new TextEncoder();
@@ -141,7 +146,7 @@ export async function GET(request: NextRequest) {
       // 并行搜索所有源，但每个完成后立即发送结果
       const promises = allSources.map(async (source) => {
         try {
-          const result = await searchSingleSource(origin, source, title);
+          const result = await searchSingleSource(origin, source, title, cookieHeader);
           completedCount++;
           
           if (result) {

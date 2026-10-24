@@ -22,12 +22,17 @@ async function matchSingleSource(
   origin: string,
   source: VodSource,
   title: string,
-  year?: string | number
+  year?: string | number,
+  cookieHeader?: string | null
 ): Promise<VodItem | null> {
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (cookieHeader) {
+      headers.cookie = cookieHeader;
+    }
     const searchResponse = await fetch(`${origin}/api/drama/list`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         source: source,  // 传递完整的 source 对象
         page: 1,
@@ -112,11 +117,12 @@ export async function POST(request: NextRequest) {
     }
     
     const origin = request.nextUrl.origin;
+    const cookieHeader = request.headers.get('cookie');
 
     // 并行搜索所有源
     const matchPromises = allSources.map(async (source) => {
       console.log(`  ⏳ 搜索源: ${source.name}...`);
-      const matchedVod = await matchSingleSource(origin, source, title, year);
+      const matchedVod = await matchSingleSource(origin, source, title, year, cookieHeader);
       
       if (matchedVod) {
         console.log(`  ✅ ${source.name} 找到: ${matchedVod.name}`);
