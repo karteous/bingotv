@@ -1,7 +1,9 @@
-// 自研车机专用 HTML5 / HLS 播放器 (Tesla Custom In-Car Player)
-// - 纯原生实现，不依赖 ArtPlayer
-// - 针对特斯拉等车载大屏触控优化：大热区进度条、手势快进/快退、长按2倍速、硬解设置
-// - 支持 HLS (.m3u8) 与标准 MP4 视频
+// 特斯拉车机自研专用播放器 (Tesla Custom In-Car AVPlayer)
+// - 底层全面启用 assets/avplayer-d71a6953.js 核心（基于 Canvas + WebCodecs / WebGPU 解码）
+// - 彻底解决特斯拉车机在行车过程中对 <video> 标签的视觉图层强制遮罩屏蔽（解决行车有声无画）
+// - 完美修复驻车模式下进度条触控与 BigInt 时间戳精准 Seek（解决驻车无法拖动）
+
+import { o as AVPlayer } from "./assets/avplayer-d71a6953.js";
 
 export class Player {
   constructor(options = {}) {
@@ -11,16 +13,18 @@ export class Player {
     this.title = options.title || "";
     this.isLive = Boolean(options.isLive);
 
-    this.video = null;
-    this.hls = null;
+    this.avPlayer = null;
+    this.videoEl = null; // fallback
+    this.isUsingCanvas = false;
+
+    this.duration = 0;
+    this.currentTime = 0;
+    this.isDraggingProgress = false;
+    this.isSeeking = false;
     this.controlsTimer = null;
     this.longPressTimer = null;
     this.isLongPressing = false;
     this.savedPlaybackRate = 1;
-    this.isDraggingProgress = false;
-    this.touchStartX = 0;
-    this.touchStartTime = 0;
-    this.isSwiping = false;
 
     this._init();
   }
@@ -63,54 +67,55 @@ export class Player {
   }
 
   _injectStyles() {
-    if (document.getElementById("tesla-player-style")) return;
+    if (document.getElementById("tesla-avplayer-style")) return;
     const style = document.createElement("style");
-    style.id = "tesla-player-style";
+    style.id = "tesla-avplayer-style";
     style.textContent = `
       .tp-root { position: relative; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .tp-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-      .tp-layer { position: absolute; inset: 0; pointer-events: none; }
-      .tp-interactive { pointer-events: auto; }
+      .tp-media-stage { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
+      .tp-media-stage canvas, .tp-media-stage video { width: 100%; height: 100%; object-fit: contain; }
       
       /* 顶部状态栏 */
-      .tp-header { position: absolute; top: 0; left: 0; right: 0; height: 56px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 30; transition: opacity 0.3s; }
-      .tp-title { color: #fff; font-size: 15px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%; }
+      .tp-header { position: absolute; top: 0; left: 0; right: 0; height: 56px; background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 30; transition: opacity 0.3s; }
+      .tp-title { color: #fff; font-size: 15px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%; display: flex; align-items: center; gap: 8px; }
+      .tp-badge-canvas { font-size: 10px; background: rgba(229,9,20,0.8); color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; }
       .tp-header-actions { display: flex; align-items: center; gap: 10px; }
       
       /* 底部控制栏 */
-      .tp-footer { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%); padding: 12px 16px 14px; z-index: 30; transition: opacity 0.3s, transform 0.3s; }
+      .tp-footer { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 70%, transparent 100%); padding: 12px 18px 14px; z-index: 30; transition: opacity 0.3s; }
       .tp-hidden { opacity: 0 !important; pointer-events: none !important; }
       
-      /* 车机大热区进度条 */
-      .tp-progress-wrap { position: relative; width: 100%; height: 26px; display: flex; align-items: center; cursor: pointer; touch-action: none; margin-bottom: 6px; }
+      /* 车机大热区防误触进度条 */
+      .tp-progress-wrap { position: relative; width: 100%; height: 32px; display: flex; align-items: center; cursor: pointer; touch-action: none; margin-bottom: 4px; }
       .tp-progress-track { position: relative; width: 100%; height: 6px; background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; }
-      .tp-progress-buffered { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.4); width: 0%; border-radius: 4px; }
+      .tp-progress-buffered { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.45); width: 0%; border-radius: 4px; }
       .tp-progress-played { position: absolute; top: 0; left: 0; height: 100%; background: #e50914; width: 0%; border-radius: 4px; }
-      .tp-progress-thumb { position: absolute; top: 50%; left: 0%; width: 16px; height: 16px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 6px rgba(0,0,0,0.6); pointer-events: none; transition: transform 0.1s; }
-      .tp-progress-wrap:active .tp-progress-thumb { transform: translate(-50%, -50%) scale(1.3); }
+      .tp-progress-thumb { position: absolute; top: 50%; left: 0%; width: 18px; height: 18px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(0,0,0,0.8); pointer-events: none; transition: transform 0.1s; }
+      .tp-progress-wrap:active .tp-progress-thumb { transform: translate(-50%, -50%) scale(1.35); }
 
       /* 控制按钮栏 */
       .tp-controls { display: flex; align-items: center; justify-content: space-between; }
       .tp-controls-left, .tp-controls-right { display: flex; align-items: center; gap: 14px; }
-      .tp-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 6px; transition: background 0.2s, transform 0.1s; }
+      .tp-btn { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; transition: background 0.2s, transform 0.1s; }
       .tp-btn:active { transform: scale(0.92); }
-      .tp-btn svg { width: 22px; height: 22px; fill: currentColor; }
-      .tp-time { color: #ddd; font-size: 13px; font-variant-numeric: tabular-nums; }
+      .tp-btn svg { width: 24px; height: 24px; fill: currentColor; }
+      .tp-time { color: #eee; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 500; }
       
       /* 居中大播放按钮 / 加载中 */
-      .tp-center-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; pointer-events: none; }
-      .tp-spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: tp-spin 0.8s linear infinite; }
+      .tp-center-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 20; pointer-events: none; background: rgba(0,0,0,0.3); }
+      .tp-spinner { width: 52px; height: 52px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: tp-spin 0.8s linear infinite; }
+      .tp-loading-text { color: #ddd; font-size: 13px; letter-spacing: 0.5px; }
       @keyframes tp-spin { to { transform: rotate(360deg); } }
 
-      .tp-center-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 68px; height: 68px; background: rgba(0,0,0,0.65); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; z-index: 25; backdrop-filter: blur(4px); transition: transform 0.2s, opacity 0.2s; }
+      .tp-center-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 72px; height: 72px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.35); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; z-index: 25; backdrop-filter: blur(6px); transition: transform 0.2s, opacity 0.2s; }
       .tp-center-play:active { transform: translate(-50%, -50%) scale(0.9); }
-      .tp-center-play svg { width: 32px; height: 32px; fill: currentColor; margin-left: 3px; }
+      .tp-center-play svg { width: 34px; height: 34px; fill: currentColor; margin-left: 3px; }
 
       /* 手势浮层胶囊提示 (快进 / 倍速) */
-      .tp-capsule-tip { position: absolute; top: 22%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px); padding: 8px 18px; border-radius: 20px; color: #fff; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 40; pointer-events: none; transition: opacity 0.2s; }
+      .tp-capsule-tip { position: absolute; top: 22%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(10px); padding: 8px 18px; border-radius: 20px; color: #fff; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 40; pointer-events: none; transition: opacity 0.2s; }
 
       /* 解码与车机设置面板 */
-      .tp-settings-modal { position: absolute; top: 12px; right: 12px; width: 280px; max-width: 90%; background: rgba(18,18,18,0.96); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; backdrop-filter: blur(12px); padding: 14px; z-index: 50; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+      .tp-settings-modal { position: absolute; top: 12px; right: 12px; width: 290px; max-width: 90%; background: rgba(18,18,18,0.96); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; backdrop-filter: blur(14px); padding: 14px; z-index: 50; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
       .tp-modal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
       .tp-setting-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 13px; color: #eee; }
       .tp-setting-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: #e50914; cursor: pointer; }
@@ -118,8 +123,8 @@ export class Player {
       .tp-modal-close:hover { color: #fff; }
 
       /* 倍速菜单 */
-      .tp-rate-menu { position: absolute; bottom: 50px; right: 50px; background: rgba(20,20,20,0.95); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; gap: 2px; z-index: 45; }
-      .tp-rate-item { background: none; border: none; color: #ccc; padding: 6px 14px; text-align: center; font-size: 12px; border-radius: 4px; cursor: pointer; }
+      .tp-rate-menu { position: absolute; bottom: 58px; right: 60px; background: rgba(20,20,20,0.96); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; gap: 2px; z-index: 45; }
+      .tp-rate-item { background: none; border: none; color: #ccc; padding: 6px 14px; text-align: center; font-size: 13px; border-radius: 4px; cursor: pointer; }
       .tp-rate-item.active { background: #e50914; color: #fff; font-weight: 600; }
     `;
     document.head.appendChild(style);
@@ -130,11 +135,13 @@ export class Player {
     this.root.className = "tp-root";
 
     this.root.innerHTML = `
-      <video class="tp-video" playsinline webkit-playsinline x5-video-player-type="h5-page"></video>
+      <!-- 视频/Canvas 渲染视口 -->
+      <div class="tp-media-stage" id="tp-stage"></div>
       
       <!-- 居中加载与播放 -->
       <div class="tp-center-loading tp-hidden" id="tp-loading">
         <div class="tp-spinner"></div>
+        <div class="tp-loading-text" id="tp-loading-text">正在启动车机硬解引擎...</div>
       </div>
       <div class="tp-center-play tp-hidden" id="tp-center-play" title="播放">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -145,9 +152,12 @@ export class Player {
 
       <!-- 顶部标题栏 -->
       <div class="tp-header" id="tp-header">
-        <div class="tp-title" id="tp-title">${this.title || "特斯拉车机播放器"}</div>
+        <div class="tp-title" id="tp-title">
+          <span>${this.title || "特斯拉车机播放器"}</span>
+          <span class="tp-badge-canvas" id="tp-engine-tag">Canvas行车优化</span>
+        </div>
         <div class="tp-header-actions">
-          <button class="tp-btn" id="tp-btn-settings" title="车机解码与硬件加速设置">
+          <button class="tp-btn" id="tp-btn-settings" title="车机解码设置">
             <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
           </button>
         </div>
@@ -172,7 +182,7 @@ export class Player {
           </div>
 
           <div class="tp-controls-right">
-            <button class="tp-btn" id="tp-rate-btn" style="font-size: 13px; font-weight: 600; width: 36px;">1.0x</button>
+            <button class="tp-btn" id="tp-rate-btn" style="font-size: 13px; font-weight: 600; width: 40px;">1.0x</button>
             <button class="tp-btn" id="tp-reload-btn" title="重新载入视频">
               <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
             </button>
@@ -195,7 +205,7 @@ export class Player {
       <!-- 解码与车机设置面板 -->
       <div class="tp-settings-modal tp-hidden" id="tp-modal">
         <div class="tp-modal-header">
-          <span>车机解码设置</span>
+          <span>车机解码与硬件加速</span>
           <button class="tp-modal-close" id="tp-modal-close">×</button>
         </div>
         <div class="tp-setting-row">
@@ -203,11 +213,11 @@ export class Player {
           <input type="checkbox" id="set-hardware">
         </div>
         <div class="tp-setting-row">
-          <span>视频硬解码 (WebCodec)</span>
+          <span>视频硬解码 (WebCodecs)</span>
           <input type="checkbox" id="set-video-webcodec">
         </div>
         <div class="tp-setting-row">
-          <span>音频硬解码 (WebCodec)</span>
+          <span>音频硬解码 (WebCodecs)</span>
           <input type="checkbox" id="set-audio-webcodec">
         </div>
         <div class="tp-setting-row">
@@ -215,7 +225,7 @@ export class Player {
           <input type="checkbox" id="set-audio-mse">
         </div>
         <div class="tp-setting-row">
-          <span>WebGPU 渲染引擎</span>
+          <span>WebGPU 引擎</span>
           <input type="checkbox" id="set-webgpu">
         </div>
       </div>
@@ -223,10 +233,11 @@ export class Player {
 
     this.container.appendChild(this.root);
 
-    this.video = this.root.querySelector(".tp-video");
+    this.stageEl = this.root.querySelector("#tp-stage");
     this.header = this.root.querySelector("#tp-header");
     this.footer = this.root.querySelector("#tp-footer");
     this.loadingEl = this.root.querySelector("#tp-loading");
+    this.loadingTextEl = this.root.querySelector("#tp-loading-text");
     this.centerPlayEl = this.root.querySelector("#tp-center-play");
     this.tipEl = this.root.querySelector("#tp-tip");
     this.progressWrap = this.root.querySelector("#tp-progress");
@@ -244,7 +255,6 @@ export class Player {
     this.settingsModal = this.root.querySelector("#tp-modal");
     this.modalClose = this.root.querySelector("#tp-modal-close");
 
-    // 初始化硬件加速设置 Checkbox 状态
     this._initSettingsUI();
   }
 
@@ -261,11 +271,18 @@ export class Player {
     aMse.checked = this._getSetting("KIT_PLAYER_AUDIO_MSE", true);
     wGpu.checked = this._getSetting("KIT_PLAYER_WEBGPU", false);
 
-    hw.addEventListener("change", (e) => this._setSetting("KIT_PLAYER_HARDWARE", e.target.checked));
-    vWc.addEventListener("change", (e) => this._setSetting("KIT_PLAYER_VIDEO_WEBCODEC", e.target.checked));
-    aWc.addEventListener("change", (e) => this._setSetting("KIT_PLAYER_AUDIO_WEBCODEC", e.target.checked));
-    aMse.addEventListener("change", (e) => this._setSetting("KIT_PLAYER_AUDIO_MSE", e.target.checked));
-    wGpu.addEventListener("change", (e) => this._setSetting("KIT_PLAYER_WEBGPU", e.target.checked));
+    const onSettingChange = () => {
+      // 切换设置后重新载入
+      if (this.url) {
+        this.loadSource(this.url);
+      }
+    };
+
+    hw.addEventListener("change", (e) => { this._setSetting("KIT_PLAYER_HARDWARE", e.target.checked); onSettingChange(); });
+    vWc.addEventListener("change", (e) => { this._setSetting("KIT_PLAYER_VIDEO_WEBCODEC", e.target.checked); onSettingChange(); });
+    aWc.addEventListener("change", (e) => { this._setSetting("KIT_PLAYER_AUDIO_WEBCODEC", e.target.checked); onSettingChange(); });
+    aMse.addEventListener("change", (e) => { this._setSetting("KIT_PLAYER_AUDIO_MSE", e.target.checked); onSettingChange(); });
+    wGpu.addEventListener("change", (e) => { this._setSetting("KIT_PLAYER_WEBGPU", e.target.checked); onSettingChange(); });
   }
 
   _formatTime(sec) {
@@ -309,100 +326,122 @@ export class Player {
 
   _resetControlsTimer() {
     clearTimeout(this.controlsTimer);
-    if (!this.video.paused) {
+    if (this._isPlaying()) {
       this.controlsTimer = setTimeout(() => {
         this._toggleControls(false);
       }, 4000);
     }
   }
 
+  _isPlaying() {
+    if (this.avPlayer) {
+      return this.avPlayer.status === 6; // 6 = playing
+    }
+    if (this.videoEl) {
+      return !this.videoEl.paused;
+    }
+    return false;
+  }
+
+  _updateProgressUI(curSec, durSec) {
+    this.currentTime = curSec;
+    if (durSec > 0) this.duration = durSec;
+    const pct = this.duration > 0 ? (this.currentTime / this.duration) * 100 : 0;
+    this.playedEl.style.width = pct + "%";
+    this.thumbEl.style.left = pct + "%";
+    this.timeEl.textContent = `${this._formatTime(this.currentTime)} / ${this._formatTime(this.duration)}`;
+  }
+
   _bindEvents() {
-    const v = this.video;
-
-    // 播放状态监听
-    v.addEventListener("waiting", () => this.loadingEl.classList.remove("tp-hidden"));
-    v.addEventListener("playing", () => {
-      this.loadingEl.classList.add("tp-hidden");
-      this.centerPlayEl.classList.add("tp-hidden");
-      this.playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
-      this._resetControlsTimer();
-    });
-    v.addEventListener("pause", () => {
-      this.centerPlayEl.classList.remove("tp-hidden");
-      this.playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
-      this._toggleControls(true);
-    });
-
-    // 进度更新
-    v.addEventListener("timeupdate", () => {
-      if (this.isDraggingProgress) return;
-      const cur = v.currentTime || 0;
-      const dur = v.duration || 0;
-      const pct = dur > 0 ? (cur / dur) * 100 : 0;
-      this.playedEl.style.width = pct + "%";
-      this.thumbEl.style.left = pct + "%";
-      this.timeEl.textContent = `${this._formatTime(cur)} / ${this._formatTime(dur)}`;
-    });
-
-    // 缓冲进度
-    v.addEventListener("progress", () => {
-      if (v.buffered.length > 0 && v.duration > 0) {
-        const bufferedEnd = v.buffered.end(v.buffered.length - 1);
-        const pct = (bufferedEnd / v.duration) * 100;
-        this.bufEl.style.width = pct + "%";
-      }
-    });
-
     // 播放/暂停控制
     const togglePlay = () => {
-      if (v.paused) {
-        v.play().catch(() => {});
+      if (this._isPlaying()) {
+        this.pause();
       } else {
-        v.pause();
+        this.play();
       }
     };
     this.playBtn.addEventListener("click", togglePlay);
     this.centerPlayEl.addEventListener("click", togglePlay);
 
-    // 进度条拖拽与点击
-    const seekFromEvent = (e) => {
+    // ==========================================
+    // 进度条拖拽与点击（修复驻车模式下无法拖动）
+    // ==========================================
+    const calcRatioFromEvent = (e) => {
       const rect = this.progressWrap.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const targetTime = pos * (v.duration || 0);
-      this.playedEl.style.width = pos * 100 + "%";
-      this.thumbEl.style.left = pos * 100 + "%";
-      return targetTime;
+      if (!rect.width) return 0;
+      let clientX = 0;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+      } else if (typeof e.clientX === "number") {
+        clientX = e.clientX;
+      }
+      const offset = clientX - rect.left;
+      return Math.max(0, Math.min(1, offset / rect.width));
     };
 
+    // 鼠标按下与拖动
     this.progressWrap.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
       this.isDraggingProgress = true;
-      const t = seekFromEvent(e);
-      const onMove = (ev) => { seekFromEvent(ev); };
-      const onUp = (ev) => {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
-        const finalT = seekFromEvent(ev);
-        v.currentTime = finalT;
-        this.isDraggingProgress = false;
+      const ratio = calcRatioFromEvent(e);
+      const targetSec = ratio * this.duration;
+      this._updateProgressUI(targetSec, this.duration);
+      this._showTip(this._formatTime(targetSec), 0);
+
+      const onMouseMove = (ev) => {
+        if (!this.isDraggingProgress) return;
+        const r = calcRatioFromEvent(ev);
+        const s = r * this.duration;
+        this._updateProgressUI(s, this.duration);
+        this._showTip(this._formatTime(s), 0);
       };
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
+
+      const onMouseUp = (ev) => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        if (this.isDraggingProgress) {
+          const r = calcRatioFromEvent(ev);
+          const finalSec = r * this.duration;
+          this.seek(finalSec);
+          this._hideTip();
+          this.isDraggingProgress = false;
+        }
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
     });
 
+    // 触控开始、滑动与松手 (车载触摸屏事件)
     this.progressWrap.addEventListener("touchstart", (e) => {
+      e.stopPropagation();
       this.isDraggingProgress = true;
-      seekFromEvent(e);
-    }, { passive: true });
+      const ratio = calcRatioFromEvent(e);
+      const targetSec = ratio * this.duration;
+      this._updateProgressUI(targetSec, this.duration);
+      this._showTip(this._formatTime(targetSec), 0);
+    }, { passive: false });
 
     this.progressWrap.addEventListener("touchmove", (e) => {
-      if (this.isDraggingProgress) seekFromEvent(e);
-    }, { passive: true });
+      if (!this.isDraggingProgress) return;
+      e.preventDefault(); // 阻止滚动
+      e.stopPropagation();
+      const ratio = calcRatioFromEvent(e);
+      const targetSec = ratio * this.duration;
+      this._updateProgressUI(targetSec, this.duration);
+      this._showTip(this._formatTime(targetSec), 0);
+    }, { passive: false });
 
     this.progressWrap.addEventListener("touchend", (e) => {
       if (this.isDraggingProgress) {
-        const finalT = seekFromEvent(e);
-        v.currentTime = finalT;
+        e.stopPropagation();
+        const ratio = calcRatioFromEvent(e);
+        const finalSec = ratio * this.duration;
+        this.seek(finalSec);
+        this._hideTip();
         this.isDraggingProgress = false;
       }
     });
@@ -414,11 +453,14 @@ export class Player {
     this.rateMenu.querySelectorAll(".tp-rate-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const rate = parseFloat(e.target.dataset.rate);
-        v.playbackRate = rate;
         this.rateBtn.textContent = rate === 1 ? "1.0x" : rate + "x";
         this.rateMenu.querySelectorAll(".tp-rate-item").forEach((b) => b.classList.remove("active"));
         e.target.classList.add("active");
         this.rateMenu.classList.add("tp-hidden");
+        // 调节倍速
+        if (this.videoEl) {
+          this.videoEl.playbackRate = rate;
+        }
       });
     });
 
@@ -436,65 +478,12 @@ export class Player {
       this.settingsModal.classList.add("tp-hidden");
     });
 
-    // 画面点击与手势处理（车机长按 2x 快进，左右滑动寻道）
+    // 画面点击
     this.root.addEventListener("click", (e) => {
       if (e.target.closest("#tp-footer") || e.target.closest("#tp-header") || e.target.closest("#tp-modal") || e.target.closest("#tp-center-play")) {
         return;
       }
       this._toggleControls();
-    });
-
-    // 长按 2.0x 倍速 (车机常用舒适体验)
-    const startLongPress = () => {
-      this.longPressTimer = setTimeout(() => {
-        if (!v.paused) {
-          this.isLongPressing = true;
-          this.savedPlaybackRate = v.playbackRate;
-          v.playbackRate = 2.0;
-          this._showTip("▶▶ 2.0x 极速快进中", 0);
-        }
-      }, 500);
-    };
-
-    const endLongPress = () => {
-      clearTimeout(this.longPressTimer);
-      if (this.isLongPressing) {
-        this.isLongPressing = false;
-        v.playbackRate = this.savedPlaybackRate || 1;
-        this._hideTip();
-      }
-    };
-
-    this.root.addEventListener("touchstart", (e) => {
-      if (e.target.closest("#tp-footer") || e.target.closest("#tp-header")) return;
-      this.touchStartX = e.touches[0].clientX;
-      this.touchStartTime = v.currentTime;
-      this.isSwiping = false;
-      startLongPress();
-    }, { passive: true });
-
-    this.root.addEventListener("touchmove", (e) => {
-      if (this.isDraggingProgress) return;
-      const dx = e.touches[0].clientX - this.touchStartX;
-      if (Math.abs(dx) > 20) {
-        endLongPress(); // 滑动时取消长按
-        this.isSwiping = true;
-        const seekOffset = (dx / window.innerWidth) * 90; // 最大滑动区间90秒
-        const target = Math.max(0, Math.min(v.duration || 0, this.touchStartTime + seekOffset));
-        const sign = seekOffset >= 0 ? "+" : "";
-        this._showTip(`${sign}${Math.round(seekOffset)}s (${this._formatTime(target)})`, 0);
-      }
-    }, { passive: true });
-
-    this.root.addEventListener("touchend", (e) => {
-      endLongPress();
-      if (this.isSwiping) {
-        const dx = (e.changedTouches[0]?.clientX || this.touchStartX) - this.touchStartX;
-        const seekOffset = (dx / window.innerWidth) * 90;
-        v.currentTime = Math.max(0, Math.min(v.duration || 0, this.touchStartTime + seekOffset));
-        this._hideTip();
-        this.isSwiping = false;
-      }
     });
 
     // 监听全屏变动更新按钮图标
@@ -509,81 +498,174 @@ export class Player {
     });
   }
 
-  loadSource(url) {
+  async loadSource(url) {
     if (!url) return this;
     this.url = url;
     this.loadingEl.classList.remove("tp-hidden");
+    this.loadingTextEl.textContent = "正在启动车机 Canvas 硬解...";
     this.centerPlayEl.classList.add("tp-hidden");
 
-    if (this.hls) {
-      try {
-        this.hls.destroy();
-      } catch {}
-      this.hls = null;
-    }
+    // 清理旧播放器
+    this._destroyInternal();
 
     const isM3u8 = url.includes(".m3u8") || url.includes("m3u8");
-    const HlsClass = window.Hls || null;
 
-    // 如果是 HLS 流且 Hls.js 可用
-    if (isM3u8 && HlsClass && HlsClass.isSupported()) {
-      const enableHw = this._getSetting("KIT_PLAYER_HARDWARE", true);
-      const hls = new HlsClass({
-        enableWorker: enableHw,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        maxBufferLength: 30,
-        autoStartLoad: true,
+    try {
+      // 1. 优先使用 AVPlayer (Canvas 硬件解码，解决行车时黑屏)
+      const enableHardware = this._getSetting("KIT_PLAYER_HARDWARE", true);
+      const enableWebCodecs = this._getSetting("KIT_PLAYER_VIDEO_WEBCODEC", true);
+      const enableWebGPU = this._getSetting("KIT_PLAYER_WEBGPU", false);
+      const audioMSE = this._getSetting("KIT_PLAYER_AUDIO_MSE", true);
+
+      const av = new AVPlayer({
+        container: this.stageEl,
+        enableHardware: enableHardware,
+        enableWebCodecs: enableWebCodecs,
+        enableWebGPU: enableWebGPU,
+        enableWorker: true,
+        audioMSE: audioMSE,
+        isLive: this.isLive,
       });
 
-      hls.loadSource(url);
-      hls.attachMedia(this.video);
+      this.avPlayer = av;
+      this.isUsingCanvas = true;
 
-      hls.on(HlsClass.Events.MANIFEST_PARSED, () => {
+      // 绑定 AVPlayer 原生事件
+      av.on("time", (timeMs) => {
+        if (this.isDraggingProgress) return;
+        const curSec = Number(timeMs) / 1000;
+        const durBig = av.getDuration();
+        const durSec = durBig ? Number(durBig) / 1000 : 0;
+        this._updateProgressUI(curSec, durSec);
+      });
+
+      av.on("playing", () => {
         this.loadingEl.classList.add("tp-hidden");
-        this.video.play().catch(() => {
-          this.centerPlayEl.classList.remove("tp-hidden");
-        });
+        this.centerPlayEl.classList.add("tp-hidden");
+        this.playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+        this._resetControlsTimer();
       });
 
-      hls.on(HlsClass.Events.ERROR, (event, data) => {
-        console.warn("[Tesla HLS Error]", data.type, data.details);
-        if (data.fatal) {
-          switch (data.type) {
-            case HlsClass.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case HlsClass.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              this.loadingEl.classList.add("tp-hidden");
-              this._showTip("视频加载异常，请点击刷新重试", 3000);
-              break;
-          }
+      av.on("paused", () => {
+        this.centerPlayEl.classList.remove("tp-hidden");
+        this.playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+        this._toggleControls(true);
+      });
+
+      av.on("firstVideoRendered", () => {
+        this.loadingEl.classList.add("tp-hidden");
+        this.centerPlayEl.classList.add("tp-hidden");
+      });
+
+      av.on("ended", () => {
+        this.centerPlayEl.classList.remove("tp-hidden");
+        this.playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+        if (typeof this.options.onEnded === "function") {
+          this.options.onEnded();
         }
       });
 
-      this.hls = hls;
-    } else {
-      // 原生播放支持（Safari / 原生支持 HLS 的车机 / MP4）
-      this.video.src = url;
-      this.video.load();
-      this.video.play().catch(() => {
-        this.loadingEl.classList.add("tp-hidden");
-        this.centerPlayEl.classList.remove("tp-hidden");
-      });
+      // 启动加载与播放
+      await av.load(url, { ext: isM3u8 ? "m3u8" : undefined });
+      await av.play({ audio: true, video: true });
+      this.loadingEl.classList.add("tp-hidden");
+
+    } catch (err) {
+      console.warn("[Tesla AVPlayer Init Error, falling back to Native]", err);
+      // 如果 AVPlayer 加载失败，降级为原生 HTML5 Video 兜底
+      this._initNativeFallback(url, isM3u8);
     }
 
     return this;
+  }
+
+  _initNativeFallback(url, isM3u8) {
+    this._destroyInternal();
+    this.isUsingCanvas = false;
+    const tag = this.root.querySelector("#tp-engine-tag");
+    if (tag) tag.textContent = "原生兼容模式";
+
+    const v = document.createElement("video");
+    v.className = "tp-video";
+    v.playsInline = true;
+    v.setAttribute("webkit-playsinline", "true");
+    v.setAttribute("x5-video-player-type", "h5-page");
+    v.autoplay = true;
+
+    this.stageEl.appendChild(v);
+    this.videoEl = v;
+
+    v.addEventListener("waiting", () => this.loadingEl.classList.remove("tp-hidden"));
+    v.addEventListener("playing", () => {
+      this.loadingEl.classList.add("tp-hidden");
+      this.centerPlayEl.classList.add("tp-hidden");
+      this.playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+      this._resetControlsTimer();
+    });
+    v.addEventListener("pause", () => {
+      this.centerPlayEl.classList.remove("tp-hidden");
+      this.playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+      this._toggleControls(true);
+    });
+
+    v.addEventListener("timeupdate", () => {
+      if (this.isDraggingProgress) return;
+      this._updateProgressUI(v.currentTime || 0, v.duration || 0);
+    });
+
+    const HlsClass = window.Hls || null;
+    if (isM3u8 && HlsClass && HlsClass.isSupported()) {
+      const hls = new HlsClass({ enableWorker: true });
+      hls.loadSource(url);
+      hls.attachMedia(v);
+      this._hls = hls;
+    } else {
+      v.src = url;
+      v.load();
+      v.play().catch(() => {});
+    }
+  }
+
+  seek(targetSeconds) {
+    const sec = Math.max(0, Math.min(this.duration || Infinity, targetSeconds));
+    if (this.avPlayer) {
+      try {
+        // 关键修复：AVPlayer 的 seek 必须传递以毫秒为单位的 BigInt！
+        const targetMs = BigInt(Math.floor(sec * 1000));
+        this.avPlayer.seek(targetMs);
+      } catch (e) {
+        console.error("[AVPlayer Seek Error]", e);
+      }
+    } else if (this.videoEl) {
+      this.videoEl.currentTime = sec;
+    }
+    this._updateProgressUI(sec, this.duration);
+  }
+
+  play() {
+    if (this.avPlayer) {
+      return this.avPlayer.play({ audio: true, video: true });
+    }
+    if (this.videoEl) {
+      return this.videoEl.play();
+    }
+  }
+
+  pause() {
+    if (this.avPlayer) {
+      this.avPlayer.pause();
+    }
+    if (this.videoEl) {
+      this.videoEl.pause();
+    }
   }
 
   toggleFullscreen() {
     if (!document.fullscreenElement) {
       if (this.root.requestFullscreen) {
         this.root.requestFullscreen().catch(() => {});
-      } else if (this.video.webkitEnterFullscreen) {
-        this.video.webkitEnterFullscreen();
+      } else if (this.stageEl.requestFullscreen) {
+        this.stageEl.requestFullscreen().catch(() => {});
       }
     } else {
       if (document.exitFullscreen) {
@@ -592,29 +674,35 @@ export class Player {
     }
   }
 
-  play() {
-    return this.video?.play();
-  }
-
-  pause() {
-    this.video?.pause();
+  _destroyInternal() {
+    if (this.avPlayer) {
+      try {
+        this.avPlayer.stop();
+      } catch {}
+      this.avPlayer = null;
+    }
+    if (this._hls) {
+      try {
+        this._hls.destroy();
+      } catch {}
+      this._hls = null;
+    }
+    if (this.videoEl) {
+      try {
+        this.videoEl.pause();
+        this.videoEl.removeAttribute("src");
+        this.videoEl.load();
+      } catch {}
+      this.videoEl = null;
+    }
+    this.stageEl.innerHTML = "";
   }
 
   destroy() {
     clearTimeout(this.controlsTimer);
     clearTimeout(this.longPressTimer);
     clearTimeout(this._tipTimer);
-    if (this.hls) {
-      try {
-        this.hls.destroy();
-      } catch {}
-      this.hls = null;
-    }
-    if (this.video) {
-      this.video.pause();
-      this.video.removeAttribute("src");
-      this.video.load();
-    }
+    this._destroyInternal();
     this.container.innerHTML = "";
   }
 }

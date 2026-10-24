@@ -45,7 +45,7 @@
       color: #e50914;
     }
   </style>
-  <!-- 离线本地引入 Hls.js，不使用任何 ArtPlayer -->
+  <!-- 离线本地引入 Hls.js 作为备用，不使用任何 ArtPlayer -->
   <script src="/dist/hls.min.js"></script>
 </head>
 <body>
@@ -79,6 +79,11 @@
           url: videoUrl,
           title: title || '特斯拉车机专属播放器',
           isLive: false,
+          onEnded: () => {
+            try {
+              window.parent.postMessage({ type: 'VIDEO_ENDED' }, '*');
+            } catch (e) {}
+          }
         });
         window.__player = player;
 
@@ -88,6 +93,11 @@
             player.loadSource(event.data.url);
           }
         });
+
+        // 向父窗口通知初始化成功
+        try {
+          window.parent.postMessage({ type: 'PLAYER_READY' }, '*');
+        } catch (e) {}
       } catch (err) {
         console.error('[Tesla Player Init Error]', err);
         emptyState.style.display = 'flex';
