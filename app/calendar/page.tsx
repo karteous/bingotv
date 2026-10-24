@@ -119,18 +119,21 @@ function CalendarCard({
           {episodeInfo}
         </div>
 
+        {/* 缩略图正中间单图标播放按钮 */}
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="w-10 h-10 bg-black/60 group-hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/25 shadow-xl transition-all duration-300 group-hover:scale-110">
+            <Play className="w-4 h-4 fill-current ml-0.5 text-white" />
+          </div>
+        </div>
+
         {/* 悬浮层 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex flex-col justify-end p-3">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex flex-col justify-end p-3 pointer-events-none">
           <h3 className="text-white font-bold text-sm mb-1 line-clamp-2">
             {displayName}
           </h3>
-          <p className="text-gray-300 text-xs mb-2">
+          <p className="text-gray-300 text-xs line-clamp-1">
             {episodeInfo} · {entry.episode_name || '最新集'}
           </p>
-          <button className="flex items-center justify-center gap-2 bg-white text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-opacity-90 transition-all">
-            <Play className="w-3 h-3 fill-current" />
-            <span>立即播放</span>
-          </button>
         </div>
       </div>
 

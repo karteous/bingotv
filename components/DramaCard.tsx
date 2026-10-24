@@ -22,8 +22,8 @@ export default function DramaCard({ drama, onSelect }: DramaCardProps) {
       className="relative cursor-pointer transition-all duration-300 ease-out group"
       onClick={() => onSelect(drama)}
     >
-      {/* 卡片容器 - 使用 group-hover 代替 useState */}
-      <div className="relative rounded overflow-hidden transition-all duration-300 scale-100 group-hover:scale-102 group-hover:z-10 group-hover:shadow-2xl">
+      {/* 卡片容器 */}
+      <div className="relative rounded-lg overflow-hidden transition-all duration-300 scale-100 group-hover:scale-102 group-hover:z-10 group-hover:shadow-2xl">
         {/* 图片 */}
         <div className="relative aspect-[2/3] bg-gray-900">
           {drama.pic ? (
@@ -51,61 +51,39 @@ export default function DramaCard({ drama, onSelect }: DramaCardProps) {
             </div>
           )}
 
-          {/* 渐变遮罩 */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </div>
-
-        {/* 悬停信息 - 使用 group-hover 代替 isHovered 状态 */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 transform transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-          <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">{drama.name}</h3>
-          
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2 text-xs">
-              {drama.remarks && (
-                <span className="px-2 py-0.5 bg-green-600 text-white rounded text-xs font-medium">
-                  {drama.remarks}
-                </span>
-              )}
-              {drama.year && (
-                <span className="text-gray-300">{drama.year}</span>
-              )}
+          {/* 缩略图正中间单图标播放按钮 */}
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-black/60 group-hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/25 shadow-xl transition-all duration-300 group-hover:scale-110">
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5 text-white" />
             </div>
           </div>
 
-          {drama.type && (
-            <p className="text-gray-400 text-xs line-clamp-1">{drama.type}</p>
-          )}
+          {/* 渐变遮罩 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
 
-          {/* 操作按钮 */}
-          <div className="flex items-center space-x-2 mt-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(drama);
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-opacity-90 hover:scale-105 transition-all duration-200 shadow-lg"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>立即播放</span>
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              className="p-2 bg-gray-800/80 text-white rounded-full hover:bg-gray-700/80 transition-colors"
-              aria-label="添加到收藏"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+        {/* 底部信息层 */}
+        <div className="absolute bottom-0 left-0 right-0 p-2.5 sm:p-3 transform transition-all duration-300 z-10">
+          <h3 className="text-white font-semibold text-xs sm:text-sm mb-1 line-clamp-1 drop-shadow-md">{drama.name}</h3>
+          
+          <div className="flex items-center space-x-1.5 text-[10px] sm:text-xs text-gray-300">
+            {drama.remarks && (
+              <span className="px-1.5 py-0.5 bg-green-600/90 text-white rounded text-[10px] font-medium">
+                {drama.remarks}
+              </span>
+            )}
+            {drama.year && (
+              <span>{drama.year}</span>
+            )}
+            {drama.type && (
+              <span className="text-gray-400 line-clamp-1">· {drama.type}</span>
+            )}
           </div>
         </div>
 
-        {/* 标签 - 使用 group-hover 隐藏 */}
+        {/* 标签 */}
         {drama.remarks && (
-          <div className="absolute top-2 right-2 px-2 py-1 bg-green-600/90 backdrop-blur-sm text-white rounded text-xs font-medium opacity-100 group-hover:opacity-0 transition-opacity duration-300">
+          <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-green-600/90 backdrop-blur-sm text-white rounded text-[10px] font-medium z-10">
             {drama.remarks}
           </div>
         )}

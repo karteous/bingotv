@@ -23,8 +23,8 @@ export default function DoubanCard({ movie, onSelect, priority = false }: Douban
       onClick={() => onSelect(movie)}
       className="group relative cursor-pointer transition-all duration-300 hover:scale-102 hover:z-10"
     >
-      {/* 海报图片 */}
-      <div className="relative aspect-2/3 overflow-hidden rounded-lg bg-gray-800">
+      {/* 海报缩略图容器 */}
+      <div className="relative aspect-2/3 overflow-hidden rounded-lg bg-gray-800 shadow-md">
         {!imageError ? (
           <img
             src={imageUrl}
@@ -58,31 +58,29 @@ export default function DoubanCard({ movie, onSelect, priority = false }: Douban
 
         {/* 评分标签 */}
         {movie.rate && (
-          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-sm rounded text-yellow-400 text-xs sm:text-sm font-bold flex items-center space-x-0.5 sm:space-x-1">
+          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-sm rounded text-yellow-400 text-xs sm:text-sm font-bold flex items-center space-x-0.5 sm:space-x-1 z-10">
             <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
             <span>{movie.rate}</span>
           </div>
         )}
-      </div>
 
-      {/* 悬浮信息层 */}
-      <div className="absolute inset-0 bg-linear-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex flex-col justify-end p-2.5 sm:p-3 md:p-4">
-        <h3 className="text-white font-bold text-xs sm:text-sm md:text-base mb-1 sm:mb-2 line-clamp-2">
-          {movie.title}
-        </h3>
-        
-        {movie.episode_info && movie.episode_info.length > 0 && (
-          <p className="text-gray-300 text-[10px] sm:text-xs mb-1 sm:mb-2 line-clamp-1">
-            {movie.episode_info}
-          </p>
-        )}
+        {/* 缩略图正中间单图标播放按钮 */}
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-black/60 group-hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/25 shadow-xl transition-all duration-300 group-hover:scale-110">
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5 text-white" />
+          </div>
+        </div>
 
-        {/* 播放按钮 */}
-        <div className="mt-1.5 sm:mt-2 md:mt-3 flex items-center space-x-2">
-          <button className="flex items-center gap-1.5 sm:gap-2 bg-white text-black px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-opacity-90 hover:scale-105 transition-all duration-200 shadow-lg">
-            <Play className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-            <span>立即播放</span>
-          </button>
+        {/* 底部片名渐变遮罩层 */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pt-8 pb-2 px-2.5 sm:px-3 z-10">
+          <h3 className="text-white font-bold text-xs sm:text-sm line-clamp-1 drop-shadow-md">
+            {movie.title}
+          </h3>
+          {movie.episode_info && (
+            <p className="text-gray-300 text-[10px] mt-0.5 line-clamp-1">
+              {movie.episode_info}
+            </p>
+          )}
         </div>
       </div>
     </div>
