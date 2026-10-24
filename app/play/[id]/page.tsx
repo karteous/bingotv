@@ -50,7 +50,7 @@ export default function PlayPage() {
 
   // 播放器配置和状态
   const [playerConfig, setPlayerConfig] = useState<PlayerConfig | null>(null);
-  const [playerMode, setPlayerMode] = useState<"iframe" | "local">("iframe");
+  const [playerMode, setPlayerMode] = useState<"iframe" | "local" | "tesla">("iframe");
   const [currentIframePlayerIndex, setCurrentIframePlayerIndex] = useState(0);
 
   // 弹幕状态
@@ -86,8 +86,11 @@ export default function PlayPage() {
         const result = await response.json();
         if (result.code === 200 && result.data) {
           setPlayerConfig(result.data);
-          // 根据配置决定初始模式 - 与 UnifiedPlayer.tsx 的 selectBestPlayerMode 保持一致
-          if (result.data.mode === "auto") {
+          // 优先检查用户记忆的偏好播放模式
+          const savedMode = typeof window !== "undefined" ? localStorage.getItem("preferred_player_mode") : null;
+          if (savedMode === "iframe" || savedMode === "local" || savedMode === "tesla") {
+            setPlayerMode(savedMode);
+          } else if (result.data.mode === "auto") {
             // 检查是否有可用的 iframe 播放器
             const hasEnabledIframePlayers = result.data.iframePlayers?.some(
               (p: { enabled: boolean }) => p.enabled
@@ -287,6 +290,17 @@ export default function PlayPage() {
     router.push("/");
   }, [router]);
 
+  // 处理播放器模式切换并持久化偏好
+  const handlePlayerModeChange = useCallback((mode: "iframe" | "local" | "tesla") => {
+    setPlayerMode(mode);
+    try {
+      localStorage.setItem("preferred_player_mode", mode);
+    } catch {
+      // 忽略存储异常
+    }
+  }, []);
+
+
   // 键盘快捷键
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -428,7 +442,7 @@ export default function PlayPage() {
                 currentMode={playerMode}
                 currentIframePlayerIndex={currentIframePlayerIndex}
                 vodSource={currentVodSource}
-                onModeChange={setPlayerMode}
+                onModeChange={handlePlayerModeChange}
                 onIframePlayerChange={setCurrentIframePlayerIndex}
               />
             )}

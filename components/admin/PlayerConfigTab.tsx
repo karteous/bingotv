@@ -47,7 +47,7 @@ export function PlayerConfigTab({
     }
   };
 
-  const handlePlayerModeChange = (mode: "iframe" | "local" | "auto") => {
+  const handlePlayerModeChange = (mode: "iframe" | "local" | "auto" | "tesla") => {
     handleSavePlayerConfig({ ...playerConfig, mode });
   };
 
@@ -184,7 +184,7 @@ export function PlayerConfigTab({
         {/* 播放器模式选择 */}
         <div className="mb-6">
           <h3 className="text-white font-medium mb-3">播放器模式</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => handlePlayerModeChange("iframe")}
               className={`p-4 rounded-lg border-2 transition ${
@@ -220,6 +220,18 @@ export function PlayerConfigTab({
               <div className="text-white font-medium mb-1">自动模式</div>
               <div className="text-xs text-slate-400">智能选择最佳播放器</div>
             </button>
+            <button
+              onClick={() => handlePlayerModeChange("tesla")}
+              className={`p-4 rounded-lg border-2 transition ${
+                playerConfig.mode === "tesla"
+                  ? "border-[#E50914] bg-[#E50914]/10"
+                  : "border-[#333] bg-[#141414] hover:border-[#555]"
+              }`}
+            >
+              <div className="text-white font-medium mb-1">Tesla播放器</div>
+              <div className="text-xs text-slate-400">适配特斯拉车机全屏</div>
+            </button>
+
           </div>
         </div>
 

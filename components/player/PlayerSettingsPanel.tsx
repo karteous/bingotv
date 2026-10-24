@@ -6,10 +6,10 @@ import type { VodSource } from "@/types/drama";
 
 interface PlayerSettingsPanelProps {
   playerConfig: PlayerConfig;
-  currentMode: "iframe" | "local";
+  currentMode: "iframe" | "local" | "tesla";
   currentIframePlayerIndex: number;
   vodSource?: VodSource | null; // 当前视频源
-  onModeChange: (mode: "iframe" | "local") => void;
+  onModeChange: (mode: "iframe" | "local" | "tesla") => void;
   onIframePlayerChange: (index: number) => void;
 }
 
@@ -25,7 +25,7 @@ export function PlayerSettingsPanel({
   const panelRef = useRef<HTMLDivElement>(null);
 
   // 切换到iframe模式时，自动选择视频源的专属播放器
-  const handleModeChange = (mode: "iframe" | "local") => {
+  const handleModeChange = (mode: "iframe" | "local" | "tesla") => {
     // 检查视频源是否启用了播放地址解析（usePlayUrl 默认为 true）
     const shouldUsePlayUrl =
       vodSource?.playUrl && vodSource.usePlayUrl !== false;
@@ -159,7 +159,7 @@ export function PlayerSettingsPanel({
                 <span>播放器设置</span>
               </h3>
               <span className="text-xs text-gray-500">
-                {currentMode === "iframe" ? "iframe" : "本地"}模式
+                {currentMode === "tesla" ? "Tesla" : currentMode === "iframe" ? "iframe" : "本地"}模式
               </span>
             </div>
           </div>
@@ -172,7 +172,7 @@ export function PlayerSettingsPanel({
                   播放器模式
                 </h4>
                 <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded">
-                  {currentMode === "iframe" ? "iframe" : "本地"}
+                  {currentMode === "tesla" ? "Tesla" : currentMode === "iframe" ? "iframe" : "本地"}
                 </span>
               </div>
 
@@ -289,6 +289,54 @@ export function PlayerSettingsPanel({
                           d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                         />
                       </svg>
+                    )}
+                  </div>
+                </button>
+                {/* Tesla 播放器 */}
+                <button
+                  onClick={() => handleModeChange("tesla")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-all group ${
+                    currentMode === "tesla"
+                      ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-500/20"
+                      : "bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:scale-[1.02]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+                        />
+                      </svg>
+                      <div>
+                        <div className="font-medium">Tesla 播放器</div>
+                        <div
+                          className={`text-xs mt-1 ${
+                            currentMode === "tesla"
+                              ? "text-red-100"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          专为特斯拉车机浏览器优化
+                        </div>
+                      </div>
+                    </div>
+                    {currentMode === "tesla" && (
+                      <span className="text-lg">✓</span>
                     )}
                   </div>
                 </button>

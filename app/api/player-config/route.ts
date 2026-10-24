@@ -5,7 +5,7 @@ import { getDatabase } from '@/lib/db';
 import { COLLECTIONS } from '@/lib/constants/db';
 
 export interface PlayerConfig {
-  mode: 'iframe' | 'local' | 'auto'; // 播放器模式
+  mode: 'iframe' | 'local' | 'auto' | 'tesla'; // 播放器模式
   enableProxy: boolean; // 是否启用代理
   iframePlayers: IframePlayer[]; // iframe播放器列表
   localPlayerSettings: LocalPlayerSettings; // 本地播放器设置
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
 function validateConfig(config: Partial<PlayerConfig>): boolean {
   // 验证模式
-  if (config.mode && !['iframe', 'local', 'auto'].includes(config.mode)) {
+  if (config.mode && !['iframe', 'local', 'auto', 'tesla'].includes(config.mode)) {
     return false;
   }
 

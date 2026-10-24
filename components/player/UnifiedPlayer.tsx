@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IframePlayer } from "./IframePlayer";
 import { LocalHlsPlayer } from "./LocalHlsPlayer";
+import { TeslaPlayer } from "./TeslaPlayer";
 import type { PlayerConfig } from "@/app/api/player-config/route";
 import type { VodSource } from "@/types/drama";
 
@@ -36,7 +37,7 @@ function selectBestPlayerMode(config: PlayerConfig): "iframe" | "local" {
 interface UnifiedPlayerProps {
   videoUrl: string;
   title: string;
-  mode?: "iframe" | "local";
+  mode?: "iframe" | "local" | "tesla";
   currentIframePlayerIndex?: number;
   vodSource?: VodSource | null;
   externalDanmaku?: import("@/lib/player/danmaku-service").DanmakuItem[];
@@ -59,14 +60,14 @@ export function UnifiedPlayer({
   onIframePlayerSwitch,
 }: UnifiedPlayerProps) {
   const [playerConfig, setPlayerConfig] = useState<PlayerConfig | null>(null);
-  const [currentMode, setCurrentMode] = useState<"iframe" | "local" | null>(
+  const [currentMode, setCurrentMode] = useState<"iframe" | "local" | "tesla" | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
   const [parsedVideoUrl, setParsedVideoUrl] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null); // 解析错误信息
-  const previousModeRef = useRef<"iframe" | "local" | undefined>(undefined);
+  const previousModeRef = useRef<"iframe" | "local" | "tesla" | undefined>(undefined);
   const switchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const lastParsedUrlRef = useRef<string>("");
@@ -144,7 +145,7 @@ export function UnifiedPlayer({
   }, [videoUrl, vodSource]);
 
   // 使用外部传入的播放模式
-  const effectiveMode: "iframe" | "local" | undefined = externalMode;
+  const effectiveMode: "iframe" | "local" | "tesla" | undefined = externalMode;
 
   // 加载播放器配置（只在挂载时加载一次）
   useEffect(() => {
@@ -352,6 +353,14 @@ export function UnifiedPlayer({
           onProgress={onProgress}
           onEnded={onEnded}
           onPlayerSwitch={handlePlayerSwitch}
+        />
+      )}
+
+{currentMode === "tesla" && (
+        <TeslaPlayer
+          key={`tesla-${finalVideoUrl}`}
+          videoUrl={finalVideoUrl}
+          title={title}
         />
       )}
 
